@@ -1,16 +1,15 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai # <--- Esta es la nueva herramienta oficial
 
 st.set_page_config(page_title="Generador Viral | DIGITALIS IA", page_icon="⚡", layout="centered")
 
-# --- CONEXIÓN ---
+# --- CONEXIÓN NUEVA VERSIÓN ---
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"].strip()
-    genai.configure(api_key=API_KEY)
-    # Volvemos al nombre clásico temporalmente
-    model = genai.GenerativeModel('gemini-pro') 
+    # Así se conecta ahora con la nueva actualización de Google
+    client = genai.Client(api_key=API_KEY) 
 except Exception as e:
-    st.error("🚨 ERROR CRÍTICO con la API KEY")
+    st.error("🚨 ERROR CRÍTICO con la API KEY. Revisa los Secrets de Streamlit.")
     st.stop()
 
 # --- DISEÑO VISUAL ---
@@ -41,37 +40,20 @@ if boton_generar:
             """
             
             try:
-                respuesta = model.generate_content(prompt_secreto)
+                # --- NUEVA FORMA DE LLAMAR A LA IA ---
+                respuesta = client.models.generate_content(
+                    model='gemini-2.5-flash', # Usamos el modelo más nuevo y estable
+                    contents=prompt_secreto
+                )
+                
                 st.success("¡Ideas generadas con éxito por Digitalis IA!")
                 st.write(respuesta.text)
             
             except Exception as e:
                 st.error("❌ ERROR DE CONEXIÓN CON GOOGLE")
                 st.warning(f"Detalle técnico: {e}")
-                st.info("💡 CONSEJO: Abre el 'Modo Diagnóstico' abajo para ver qué modelos permite tu clave.")
     else:
         st.warning("Por favor, escribe un tema primero para poder ayudarte.")
 
 st.markdown("---")
 st.markdown("<p style='text-align: center; font-size: 14px; color: gray;'>Desarrollado con ❤️ por <b>DIGITALIS IA</b></p>", unsafe_allow_html=True)
-
-# --- MODO DIAGNÓSTICO SECRETO ---
-st.markdown("<br><br>", unsafe_allow_html=True)
-with st.expander("🛠️ Modo Diagnóstico (Solo para DIGITALIS IA)"):
-    st.write("Haz clic aquí para preguntarle a Google exactamente qué modelos están disponibles para tu clave API en este momento.")
-    if st.button("Buscar Modelos Disponibles"):
-        with st.spinner("Consultando a los servidores de Google..."):
-            try:
-                modelos_disponibles = []
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        modelos_disponibles.append(m.name)
-                
-                if modelos_disponibles:
-                    st.success("¡Lista obtenida! Google dice que SÍ tienes acceso a estos:")
-                    st.write(modelos_disponibles)
-                    st.info("Copia el que diga algo como 'models/gemini-1.5-flash' y envíamelo.")
-                else:
-                    st.error("Tu clave es válida, pero Google dice que NO tienes ningún modelo disponible. Esto suele pasar si usas un correo de empresa que tiene bloqueada la IA.")
-            except Exception as e:
-                st.error(f"Error al intentar listar modelos: {e}")
