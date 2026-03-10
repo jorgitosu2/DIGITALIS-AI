@@ -7,7 +7,7 @@ st.set_page_config(page_title="Generador Viral | DIGITALIS IA", page_icon="⚡",
 # 2. Conectar la API Key desde los "Secretos" de Streamlit
 API_KEY = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-pro')
 
 # 3. DISEÑO VISUAL
 st.markdown("""
