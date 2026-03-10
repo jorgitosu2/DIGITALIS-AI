@@ -31,11 +31,13 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
 # =========================================================
 st.markdown("""
     <style>
-    /* 1. Fondo principal súper oscuro */
-    .stApp { background-color: #0e0e0e !important; }
-    header { visibility: hidden; }
+    /* 1. Fondo principal súper oscuro (casi negro) */
+    .stApp {
+        background-color: #0e0e0e;
+    }
+    header {visibility: hidden;}
 
-    /* 2. Estilo de la Caja de Texto (Gris Oscuro Minimalista) */
+    /* 2. Estilo de la Caja de Texto (Gris Oscuro) */
     div[data-baseweb="input"] {
         background-color: #1e1e1e !important; 
         border: 1px solid #333 !important;
@@ -44,33 +46,45 @@ st.markdown("""
     }
     div[data-baseweb="input"] input {
         color: #e2e8f0 !important;
-        padding: 12px !important;
+        padding: 14px !important;
         font-size: 1rem !important;
     }
+    /* Brillo púrpura sutil al hacer clic para escribir */
     div[data-baseweb="input"]:focus-within {
         border-color: #a855f7 !important;
         background-color: #252525 !important;
         box-shadow: 0 0 10px rgba(168, 85, 247, 0.2) !important;
     }
 
-    /* 3. Estilo del Botón "Generar Ideas" (Igual a tu foto, pero con luz púrpura) */
+    /* 3. Estilo del Botón "Generar Ideas" (Igual a la foto pero púrpura) */
     button[kind="primary"] {
-        background-color: #334155 !important; /* Gris azulado apagado */
+        background-color: #475569 !important; /* Gris azulado por defecto */
         color: white !important;
-        border: 1px solid #475569 !important;
+        border: none !important;
         border-radius: 8px !important;
         font-weight: bold;
-        height: 48px !important; /* Misma altura que la caja */
+        height: 100% !important; /* Igualar altura con la caja de texto */
         padding: 0px !important;
-        box-shadow: 0 10px 25px -5px rgba(168, 85, 247, 0.6) !important; /* Brillo de neón inferior */
+        /* EL SECRETO: El brillo de neón por debajo del botón */
+        box-shadow: 0 12px 20px -8px rgba(168, 85, 247, 0.8) !important;
         transition: all 0.3s ease;
     }
     button[kind="primary"]:hover {
-        background-color: #a855f7 !important; /* Se enciende al pasar el ratón */
-        box-shadow: 0 15px 30px -5px rgba(168, 85, 247, 0.9) !important;
+        background-color: #a855f7 !important; /* Se vuelve púrpura entero al pasar el ratón */
+        box-shadow: 0 15px 25px -5px rgba(168, 85, 247, 1) !important;
     }
 
-    /* 4. Estilo de los botones selectores de red */
+    /* 4. Línea de neón brillante en la parte inferior de la "Tarjeta" */
+    hr.glow-line {
+        border: none;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #a855f7, transparent);
+        box-shadow: 0 5px 25px 2px rgba(168, 85, 247, 0.8);
+        margin-top: 40px;
+        margin-bottom: 40px;
+    }
+
+    /* 5. Estilo de los botones selectores de red (inactivos) */
     button[kind="secondary"] {
         border: 1px solid #333 !important;
         color: #888 !important;
@@ -92,25 +106,23 @@ except Exception as e:
     st.error("🚨 ERROR CRÍTICO: Revisa los Secrets de Streamlit.")
     st.stop()
 
-# --- 🎯 ZONA DEL LOGO (PROTEGIDA CONTRA ESPACIOS INVISIBLES) ---
-# Usamos HTML directo para obligar al logo a ser compacto y no empujar la página
-if os.path.exists("digi ai.png"):
-    with open("digi ai.png", "rb") as img_file:
-        b64_logo = base64.b64encode(img_file.read()).decode()
-    st.markdown(f'''
-        <div style="display: flex; justify-content: center; margin-bottom: 40px; margin-top: -20px;">
-            <img src="data:image/png;base64,{b64_logo}" style="max-height: 70px; object-fit: contain;">
-        </div>
-    ''', unsafe_allow_html=True)
+# --- 🎯 ZONA DEL LOGO DE LA EMPRESA ---
+col_logo1, col_logo2, col_logo3 = st.columns([1, 1.2, 1])
+with col_logo2:
+    if os.path.exists("digi ai.png"):
+        st.image("digi ai.png", use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 # =========================================================
-# --- ZONA CLONADA EXACTA DE TU IMAGEN ---
+# --- ZONA CLONADA DE TU IMAGEN ---
 # =========================================================
 
-# 1. Caja de búsqueda y botón en la misma línea
-col_input, col_btn = st.columns([3, 1]) 
+# 1. Caja de búsqueda y botón alineados horizontalmente
+col_input, col_btn = st.columns([4, 1.2]) # La caja es 4 veces más grande que el botón
 
 with col_input:
+    # Usamos label_visibility="collapsed" para ocultar el título y que quede alineado perfecto con el botón
     nicho_cliente = st.text_input(
         "Oculto", 
         placeholder='Ej: "viralidad, negocios", "recetas virales"...',
@@ -122,11 +134,13 @@ with col_btn:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 2. Textos centrados debajo de la caja (Clon exacto)
-st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.3rem; margin-top: 10px;'>Genera Ideas para TikTok, Instagram, YouTube</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 0.95rem; margin-top: -10px; margin-bottom: 30px;'>Introduce palabras clave para recibir ideas de contenido listas para grabar.</p>", unsafe_allow_html=True)
+# 2. Textos centrados (Igual a la imagen)
+st.markdown("<h3 style='text-align: center; color: white; font-size: 1.4rem;'>Genera Ideas para TikTok, Instagram, YouTube</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-top: -10px;'>Introduce palabras clave para recibir ideas de contenido listas para grabar.</p>", unsafe_allow_html=True)
 
-# 3. Selector de Redes Sociales (Alineación perfecta)
+st.markdown("<br>", unsafe_allow_html=True)
+
+# 3. Selector de Redes Sociales
 espacio_izq, col_tk, col_ig, col_yt, espacio_der = st.columns([1, 1.5, 1.5, 1.5, 1])
 
 with col_tk:
@@ -144,11 +158,12 @@ with col_yt:
     tipo_yt = "primary" if st.session_state['red_activa'] == 'YouTube Shorts' else "secondary"
     st.button("YouTube", on_click=seleccionar_red, args=('YouTube Shorts',), type=tipo_yt, use_container_width=True)
 
+# 4. Línea de neón final que cierra el diseño de "Tarjeta"
+st.markdown('<hr class="glow-line">', unsafe_allow_html=True)
+
 # =========================================================
 # --- LA MAGIA DE LA IA ---
 # =========================================================
-st.markdown("<br>", unsafe_allow_html=True)
-
 if boton_generar:
     if nicho_cliente:
         red_elegida = st.session_state['red_activa']
@@ -183,4 +198,4 @@ if boton_generar:
         st.warning("Por favor, introduce palabras clave primero.")
 
 # --- PIE DE PÁGINA ---
-st.markdown("<p style='text-align: center; font-size: 13px; color: #444; margin-top: 60px;'>Desarrollado con 💜 por <b>DIGITALIS IA</b></p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 14px; color: #555; margin-top: 50px;'>Desarrollado con 💜 por <b>DIGITALIS IA</b></p>", unsafe_allow_html=True)
