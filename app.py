@@ -8,7 +8,7 @@ try:
     # El .strip() elimina espacios invisibles al principio o al final que arruinan la clave
     API_KEY = st.secrets["GEMINI_API_KEY"].strip()
     genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except KeyError:
     st.error("🚨 ERROR CRÍTICO: No encuentro la clave 'GEMINI_API_KEY' en los Secrets de Streamlit.")
     st.stop()
