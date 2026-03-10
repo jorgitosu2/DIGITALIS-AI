@@ -1,6 +1,7 @@
 import streamlit as st
 from google import genai
 import os
+import base64 # <-- NUEVA HERRAMIENTA para centrar imágenes perfectas
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Generador Viral | DIGITALIS IA", page_icon="favicon.png", layout="centered")
@@ -12,7 +13,23 @@ if 'red_activa' not in st.session_state:
 def seleccionar_red(red):
     st.session_state['red_activa'] = red
 
-# --- DISEÑO VISUAL PREMIUM (Ajustado) ---
+# --- FUNCIÓN MÁGICA PARA CENTRAR ICONOS ---
+def mostrar_icono_centrado(ruta_imagen, tamaño=45):
+    """Fuerza a la imagen a estar 100% centrada sin importar el tamaño de la pantalla"""
+    if os.path.exists(ruta_imagen):
+        with open(ruta_imagen, "rb") as img_file:
+            b64_string = base64.b64encode(img_file.read()).decode()
+            html = f"""
+            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">
+                <img src="data:image/png;base64,{b64_string}" style="width: {tamaño}px; height: {tamaño}px; object-fit: contain;">
+            </div>
+            """
+            st.markdown(html, unsafe_allow_html=True)
+    else:
+        # Si falta la imagen, pone un bloque invisible perfecto
+        st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 8px;"></div>', unsafe_allow_html=True)
+
+# --- DISEÑO VISUAL PREMIUM ---
 st.markdown("""
     <style>
     /* Botones Activos y Botón Principal (Púrpura) */
@@ -37,13 +54,6 @@ st.markdown("""
     button[kind="secondary"]:hover {
         border: 1px solid #a855f7 !important;
         color: white !important;
-    }
-
-    /* Centrar perfectamente las imágenes de los iconos */
-    [data-testid="stImage"] {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -73,42 +83,24 @@ st.markdown("""
 st.markdown("<p style='text-align: center; color: #e2e8f0; margin-bottom: 25px;'>Introduce tu nicho y recibe guiones listos para grabar.</p>", unsafe_allow_html=True)
 
 # =========================================================
-# --- PANEL DE SELECCIÓN (ALINEACIÓN A PRUEBA DE FALLOS) ---
+# --- PANEL DE SELECCIÓN (SIMETRÍA PERFECTA 100%) ---
 # =========================================================
-st.markdown("<p style='text-align: center; color: #d8b4fe; font-weight: bold; margin-bottom: 10px;'>Selecciona la red social:</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #d8b4fe; font-weight: bold; margin-bottom: 15px;'>Selecciona la red social:</p>", unsafe_allow_html=True)
 
-# Ajustamos los márgenes para que la separación sea perfecta
 espacio_izq, col_tk, col_ig, col_yt, espacio_der = st.columns([1, 1.5, 1.5, 1.5, 1])
 
-# BLOQUE INVISIBLE (Se usa para mantener la altura si falta una imagen)
-bloque_invisible = "<div style='height: 45px; width: 45px; margin: 0 auto; margin-bottom: 5px;'></div>"
-
 with col_tk:
-    if os.path.exists("tiktok.png"):
-        st.image("tiktok.png", width=45)
-    else:
-        st.markdown(bloque_invisible, unsafe_allow_html=True)
-        
+    mostrar_icono_centrado("tiktok.png") # <--- Llama a la herramienta mágica
     tipo_tk = "primary" if st.session_state['red_activa'] == 'TikTok' else "secondary"
     st.button("TikTok", on_click=seleccionar_red, args=('TikTok',), type=tipo_tk, use_container_width=True)
 
 with col_ig:
-    # AQUI ESTÁ LA PROTECCIÓN PARA INSTAGRAM
-    if os.path.exists("instagram.png"):
-        st.image("instagram.png", width=45)
-    else:
-        # Si no la encuentra, pone un bloque invisible para que el botón no se suba
-        st.markdown(bloque_invisible, unsafe_allow_html=True)
-        
+    mostrar_icono_centrado("instagram.png") # <--- Llama a la herramienta mágica
     tipo_ig = "primary" if st.session_state['red_activa'] == 'Instagram Reels' else "secondary"
     st.button("Instagram", on_click=seleccionar_red, args=('Instagram Reels',), type=tipo_ig, use_container_width=True)
 
 with col_yt:
-    if os.path.exists("youtube.png"):
-        st.image("youtube.png", width=45)
-    else:
-        st.markdown(bloque_invisible, unsafe_allow_html=True)
-        
+    mostrar_icono_centrado("youtube.png") # <--- Llama a la herramienta mágica
     tipo_yt = "primary" if st.session_state['red_activa'] == 'YouTube Shorts' else "secondary"
     st.button("YouTube", on_click=seleccionar_red, args=('YouTube Shorts',), type=tipo_yt, use_container_width=True)
 
