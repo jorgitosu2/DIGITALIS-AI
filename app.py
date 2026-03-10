@@ -1,30 +1,25 @@
 import streamlit as st
 from google import genai
-import os # Importante para que el sistema busque tu logo
+import os
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Generador Viral | DIGITALIS IA", page_icon="⚡", layout="centered")
 
-# --- DISEÑO VISUAL PERSONALIZADO (TEMA PÚRPURA) ---
+# --- DISEÑO VISUAL (CORREGIDO Y PÚRPURA) ---
 st.markdown("""
     <style>
-    div[role="radiogroup"] > label {
-        display: none !important;
-    }
-    .stRadio p {
-        color: #d8b4fe !important;
-        font-weight: bold;
-        font-size: 16px;
-    }
+    /* Botón principal púrpura */
     div.stButton > button:first-child {
-        background-color: #9333ea !important;
+        background-color: #a855f7 !important;
         color: white !important;
-        border: 1px solid #d8b4fe !important;
+        border: none !important;
         border-radius: 8px;
+        font-weight: bold;
+        padding: 0.5rem 1rem;
     }
     div.stButton > button:first-child:hover {
-        background-color: #7e22ce !important;
-        border: 1px solid #white !important;
+        background-color: #9333ea !important;
+        border: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -38,31 +33,30 @@ except Exception as e:
     st.stop()
 
 # --- 🎯 ZONA DEL LOGO DE LA EMPRESA ---
-# Usamos columnas para que el logo quede perfectamente centrado y no sea gigante
-col1, col2, col3 = st.columns([1, 1.5, 1])
+# Ajustamos las columnas para que tu logo 'digi ai.png' quede de buen tamaño
+col1, col2, col3 = st.columns([1, 1.2, 1])
 with col2:
-    # El sistema busca si subiste el archivo 'logo.png'
-    if os.path.exists("logo.png"):
-        st.image("logo.png", use_container_width=True)
-    else:
-        # Si no lo has subido aún, te deja este aviso pequeñito (tus clientes no lo verán una vez lo subas)
-        st.caption("📌 Sube tu 'logo.png' a GitHub para verlo aquí.")
+    # AHORA BUSCA EXACTAMENTE EL ARCHIVO QUE SUBISTE
+    if os.path.exists("digi ai.png"):
+        st.image("digi ai.png", use_container_width=True)
 
 # --- TÍTULO PRINCIPAL ---
 st.markdown("""
-    <h1 style='text-align: center; margin-top: -10px;'>
-        <span style='color: #9333ea; text-shadow: 1px 1px 2px black;'>GENERADOR DE IDEAS VIRALES</span><br>
+    <h1 style='text-align: center; margin-top: -15px;'>
+        <span style='color: #a855f7; text-shadow: 1px 1px 2px black;'>GENERADOR DE IDEAS VIRALES</span><br>
         <span style='font-size: 0.5em; color: #d8b4fe; font-weight: normal;'>By DIGITALIS IA</span>
     </h1>
     """, unsafe_allow_html=True)
 
-st.markdown("<p style='text-align: center; color: #e2e8f0; margin-bottom: 30px;'>Selecciona tu red social, introduce tu nicho y recibe guiones listos para grabar.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #e2e8f0; margin-bottom: 20px;'>Selecciona tu red social, introduce tu nicho y recibe guiones listos para grabar.</p>", unsafe_allow_html=True)
 
-# --- LAS PESTAÑAS (PREVIA ELECCIÓN) ---
+# --- LAS PESTAÑAS (YA VISIBLES Y REPARADAS) ---
+st.markdown("<p style='color: #d8b4fe; font-weight: bold; margin-bottom: -10px;'>Selecciona la red social:</p>", unsafe_allow_html=True)
 red_elegida = st.radio(
-    "Selecciona la red social:",
+    "Oculto", # Etiqueta oculta
     ["🎵 TikTok", "📸 Instagram Reels", "▶️ YouTube Shorts"],
-    horizontal=True
+    horizontal=True,
+    label_visibility="collapsed"
 )
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -78,7 +72,6 @@ with col_btn2:
 if boton_generar:
     if nicho_cliente:
         with st.spinner(f'Digitalis IA está generando magia para {red_elegida}...'):
-            
             prompt_secreto = f"""
             Eres el Director Creativo experto en viralidad de la agencia DIGITALIS IA. 
             El cliente dice: "{nicho_cliente}".
