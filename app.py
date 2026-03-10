@@ -5,7 +5,7 @@ import os
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Generador Viral | DIGITALIS IA", page_icon="⚡", layout="centered")
 
-# --- DISEÑO VISUAL (CORREGIDO Y PÚRPURA) ---
+# --- DISEÑO VISUAL (AHORA TODO CENTRADO) ---
 st.markdown("""
     <style>
     /* Botón principal púrpura */
@@ -21,6 +21,11 @@ st.markdown("""
         background-color: #9333ea !important;
         border: none !important;
     }
+    
+    /* NUEVO: Forzar a que los botones de radio (TikTok, IG, YT) se centren */
+    div[role="radiogroup"] {
+        justify-content: center !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -33,10 +38,9 @@ except Exception as e:
     st.stop()
 
 # --- 🎯 ZONA DEL LOGO DE LA EMPRESA ---
-# Ajustamos las columnas para que tu logo 'digi ai.png' quede de buen tamaño
+# Recuerda cambiar "tu_logo.png" por el nombre exacto de tu archivo si lo cambiaste
 col1, col2, col3 = st.columns([1, 1.2, 1])
 with col2:
-    # AHORA BUSCA EXACTAMENTE EL ARCHIVO QUE SUBISTE
     if os.path.exists("digi ai.png"):
         st.image("digi ai.png", use_container_width=True)
 
@@ -48,12 +52,14 @@ st.markdown("""
     </h1>
     """, unsafe_allow_html=True)
 
-st.markdown("<p style='text-align: center; color: #e2e8f0; margin-bottom: 20px;'>Selecciona tu red social, introduce tu nicho y recibe guiones listos para grabar.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #e2e8f0; margin-bottom: 20px;'>Introduce tu nicho y recibe guiones listos para grabar.</p>", unsafe_allow_html=True)
 
-# --- LAS PESTAÑAS (YA VISIBLES Y REPARADAS) ---
-st.markdown("<p style='color: #d8b4fe; font-weight: bold; margin-bottom: -10px;'>Selecciona la red social:</p>", unsafe_allow_html=True)
+# --- LAS PESTAÑAS (CENTRADAS) ---
+# Hemos añadido 'text-align: center;' a este texto
+st.markdown("<p style='text-align: center; color: #d8b4fe; font-weight: bold; margin-bottom: -10px;'>Selecciona la red social:</p>", unsafe_allow_html=True)
+
 red_elegida = st.radio(
-    "Oculto", # Etiqueta oculta
+    "Oculto", 
     ["🎵 TikTok", "📸 Instagram Reels", "▶️ YouTube Shorts"],
     horizontal=True,
     label_visibility="collapsed"
