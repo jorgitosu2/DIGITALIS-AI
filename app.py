@@ -5,14 +5,14 @@ import os
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Generador Viral | DIGITALIS IA", page_icon="favicon.png", layout="centered")
 
-# --- MEMORIA DE LA APLICACIÓN (Sabe qué red has elegido) ---
+# --- MEMORIA DE LA APLICACIÓN ---
 if 'red_activa' not in st.session_state:
     st.session_state['red_activa'] = 'TikTok'
 
 def seleccionar_red(red):
     st.session_state['red_activa'] = red
 
-# --- DISEÑO VISUAL PREMIUM ---
+# --- DISEÑO VISUAL PREMIUM (Ajustado) ---
 st.markdown("""
     <style>
     /* Botones Activos y Botón Principal (Púrpura) */
@@ -27,7 +27,7 @@ st.markdown("""
         background-color: #9333ea !important;
     }
     
-    /* Botones Inactivos (Borde púrpura, transparentes) */
+    /* Botones Inactivos */
     button[kind="secondary"] {
         border: 1px solid #6b21a8 !important;
         color: #d8b4fe !important;
@@ -43,7 +43,7 @@ st.markdown("""
     [data-testid="stImage"] {
         display: flex;
         justify-content: center;
-        margin-bottom: -15px; /* Acerca la imagen al botón */
+        margin-bottom: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -70,31 +70,45 @@ st.markdown("""
     </h1>
     """, unsafe_allow_html=True)
 
-st.markdown("<p style='text-align: center; color: #e2e8f0; margin-bottom: 20px;'>Introduce tu nicho y recibe guiones listos para grabar.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #e2e8f0; margin-bottom: 25px;'>Introduce tu nicho y recibe guiones listos para grabar.</p>", unsafe_allow_html=True)
 
 # =========================================================
-# --- NUEVO PANEL DE SELECCIÓN CENTRADO CON ICONOS ---
+# --- PANEL DE SELECCIÓN (ALINEACIÓN A PRUEBA DE FALLOS) ---
 # =========================================================
-st.markdown("<p style='text-align: center; color: #d8b4fe; font-weight: bold;'>Selecciona la red social:</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #d8b4fe; font-weight: bold; margin-bottom: 10px;'>Selecciona la red social:</p>", unsafe_allow_html=True)
 
-# Usamos 5 columnas. Las 2 de los bordes empujan a las 3 centrales para que quede perfecto en el medio
-espacio1, col_tk, col_ig, col_yt, espacio2 = st.columns([0.5, 1, 1, 1, 0.5])
+# Ajustamos los márgenes para que la separación sea perfecta
+espacio_izq, col_tk, col_ig, col_yt, espacio_der = st.columns([1, 1.5, 1.5, 1.5, 1])
+
+# BLOQUE INVISIBLE (Se usa para mantener la altura si falta una imagen)
+bloque_invisible = "<div style='height: 45px; width: 45px; margin: 0 auto; margin-bottom: 5px;'></div>"
 
 with col_tk:
     if os.path.exists("tiktok.png"):
         st.image("tiktok.png", width=45)
+    else:
+        st.markdown(bloque_invisible, unsafe_allow_html=True)
+        
     tipo_tk = "primary" if st.session_state['red_activa'] == 'TikTok' else "secondary"
     st.button("TikTok", on_click=seleccionar_red, args=('TikTok',), type=tipo_tk, use_container_width=True)
 
 with col_ig:
+    # AQUI ESTÁ LA PROTECCIÓN PARA INSTAGRAM
     if os.path.exists("instagram.png"):
         st.image("instagram.png", width=45)
+    else:
+        # Si no la encuentra, pone un bloque invisible para que el botón no se suba
+        st.markdown(bloque_invisible, unsafe_allow_html=True)
+        
     tipo_ig = "primary" if st.session_state['red_activa'] == 'Instagram Reels' else "secondary"
     st.button("Instagram", on_click=seleccionar_red, args=('Instagram Reels',), type=tipo_ig, use_container_width=True)
 
 with col_yt:
     if os.path.exists("youtube.png"):
         st.image("youtube.png", width=45)
+    else:
+        st.markdown(bloque_invisible, unsafe_allow_html=True)
+        
     tipo_yt = "primary" if st.session_state['red_activa'] == 'YouTube Shorts' else "secondary"
     st.button("YouTube", on_click=seleccionar_red, args=('YouTube Shorts',), type=tipo_yt, use_container_width=True)
 
@@ -105,7 +119,6 @@ nicho_cliente = st.text_input("¿De qué trata tu negocio o qué quieres vender?
 
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
 with col_btn2:
-    # Este botón siempre es primary para que se vea púrpura
     boton_generar = st.button("Generar Ideas Virales", type="primary", use_container_width=True)
 
 # --- LA MAGIA DE LA IA ---
