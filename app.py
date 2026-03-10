@@ -3,7 +3,7 @@ from google import genai
 import os
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Generador Viral | DIGITALIS IA", page_icon="⚡", layout="centered")
+st.set_page_config(page_title="Generador Viral | DIGITALIS IA", page_icon="favicon.png", layout="centered")
 
 # --- DISEÑO VISUAL (AHORA TODO CENTRADO) ---
 st.markdown("""
