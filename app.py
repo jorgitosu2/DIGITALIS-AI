@@ -7,6 +7,7 @@ from io import BytesIO
 from PIL import Image
 import urllib.parse
 import random
+import time # <-- NUEVA HERRAMIENTA para los reintentos automáticos
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Herramientas Virales | DIGITALIS IA", page_icon="favicon.png", layout="centered")
@@ -31,31 +32,35 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- NUEVA FUNCIÓN MÁGICA: IMÁGENES ULTRA-RÁPIDAS Y GRATIS (POLLINATIONS) ---
+# --- FUNCIÓN MÁGICA MEJORADA: IMÁGENES ULTRA (CON AUTO-REINTENTO Y DISFRAZ) ---
 def generar_imagen_ultra(prompt):
-    # Añadimos palabras clave secretas para forzar máxima calidad
-    prompt_mejorado = f"{prompt}, masterpiece, best quality, highly detailed, 8k resolution, cinematic lighting"
-    
-    # Codificamos el texto para que se pueda enviar por internet sin romper la URL
+    prompt_mejorado = f"{prompt}, masterpiece, best quality, highly detailed, cinematic lighting"
     prompt_url = urllib.parse.quote(prompt_mejorado)
-    
-    # Generamos un número aleatorio para que, si el cliente pide lo mismo 2 veces, le dé fotos distintas
     semilla = random.randint(1, 1000000)
     
-    # Llamamos al motor gratuito de Pollinations (Sin API KEY)
-    # nologo=true quita las marcas de agua
-    url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&seed={semilla}&nologo=true"
+    # Reducimos un pelín la resolución (de 1024 a 800) para que el servidor gratuito no nos rechace por peso
+    url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=800&height=800&seed={semilla}&nologo=true"
     
-    try:
-        response = requests.get(url, timeout=30)
-        if response.status_code == 200:
-            return Image.open(BytesIO(response.content))
-        else:
-            st.error("❌ El servidor de imágenes está muy saturado ahora mismo. Inténtalo de nuevo en unos segundos.")
-            return None
-    except Exception as e:
-        st.error(f"Error de conexión: {e}")
-        return None
+    # EL DISFRAZ: Le hacemos creer al servidor que somos Google Chrome
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    # EL BUCLE ANTI-SATURACIÓN: Intentará generar la imagen hasta 3 veces
+    for intento in range(3):
+        try:
+            response = requests.get(url, headers=headers, timeout=25)
+            if response.status_code == 200:
+                return Image.open(BytesIO(response.content))
+            else:
+                time.sleep(2) # Si está saturado, espera 2 segundos y vuelve a intentarlo en silencio
+        except Exception as e:
+            time.sleep(2) # Si hay corte de internet, espera 2 segundos y reintenta
+            continue
+            
+    # Si después de 3 intentos sigue saturado, entonces sí mostramos el error
+    st.error("❌ Los servidores de imágenes gratuitos están experimentando un pico de tráfico extremo ahora mismo. Por favor, inténtalo de nuevo en 1 minuto.")
+    return None
 
 # =========================================================
 # --- DISEÑO VISUAL PREMIUM (CAJAS GRANDES MULTILÍNEA) ---
@@ -150,7 +155,6 @@ st.markdown("""
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
-    # ¡Ya no necesitamos buscar la clave de Hugging Face!
 except Exception as e:
     st.error("🚨 ERROR CRÍTICO: Revisa tu clave de Google en los Secrets.")
     st.stop()
@@ -236,7 +240,7 @@ with tab_guiones:
             st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (NUEVO MOTOR SÚPER RÁPIDO)
+# PESTAÑA 2: CREADOR DE IMÁGENES (CON AUTO-REINTENTO)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -258,8 +262,7 @@ with tab_imagenes:
 
     if boton_imagen:
         if prompt_imagen:
-            # Quitamos el mensaje de "servidor despertando" porque Pollinations es instantáneo
-            with st.spinner('🎨 Generando obra de arte a la velocidad de la luz...'):
+            with st.spinner('🎨 Generando obra de arte a la velocidad de la luz... (Puede tardar unos segundos extra si el servidor está lleno)'):
                 imagen_generada = generar_imagen_ultra(prompt_imagen)
                 
                 if imagen_generada:
