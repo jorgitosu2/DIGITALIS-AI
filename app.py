@@ -5,6 +5,8 @@ import base64
 import requests
 from io import BytesIO
 from PIL import Image
+import urllib.parse
+import random
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Herramientas Virales | DIGITALIS IA", page_icon="favicon.png", layout="centered")
@@ -29,25 +31,27 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN: GENERAR IMÁGENES GRATIS ---
-def generar_imagen_gratis(prompt, api_key):
-    API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
-    headers = {"Authorization": f"Bearer {api_key}"}
-    prompt_mejorado = f"masterpiece, best quality, highly detailed, {prompt}"
-    payload = {"inputs": prompt_mejorado}
+# --- NUEVA FUNCIÓN MÁGICA: IMÁGENES ULTRA-RÁPIDAS Y GRATIS (POLLINATIONS) ---
+def generar_imagen_ultra(prompt):
+    # Añadimos palabras clave secretas para forzar máxima calidad
+    prompt_mejorado = f"{prompt}, masterpiece, best quality, highly detailed, 8k resolution, cinematic lighting"
+    
+    # Codificamos el texto para que se pueda enviar por internet sin romper la URL
+    prompt_url = urllib.parse.quote(prompt_mejorado)
+    
+    # Generamos un número aleatorio para que, si el cliente pide lo mismo 2 veces, le dé fotos distintas
+    semilla = random.randint(1, 1000000)
+    
+    # Llamamos al motor gratuito de Pollinations (Sin API KEY)
+    # nologo=true quita las marcas de agua
+    url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&seed={semilla}&nologo=true"
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+        response = requests.get(url, timeout=30)
         if response.status_code == 200:
             return Image.open(BytesIO(response.content))
-        elif response.status_code == 401:
-            st.error("🔑 ERROR DE CLAVE: Tu clave de Hugging Face es inválida.")
-            return None
-        elif response.status_code == 503:
-            st.warning("⏳ EL SERVIDOR ESTÁ DESPERTANDO. Espera 20 segundos y vuelve a darle a Crear Imagen.")
-            return None
         else:
-            st.error(f"❌ Error técnico: {response.text}")
+            st.error("❌ El servidor de imágenes está muy saturado ahora mismo. Inténtalo de nuevo en unos segundos.")
             return None
     except Exception as e:
         st.error(f"Error de conexión: {e}")
@@ -78,7 +82,6 @@ st.markdown("""
     }
     header { visibility: hidden; }
 
-    /* Efecto cristal para cajas de texto normales y MULTILÍNEA (Text Area) */
     div[data-baseweb="input"], div[data-baseweb="textarea"] {
         background-color: rgba(20, 20, 25, 0.7) !important; 
         backdrop-filter: blur(10px); 
@@ -98,7 +101,6 @@ st.markdown("""
         box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
     }
 
-    /* Botón Principal Púrpura */
     button[kind="primary"] {
         background-color: #334155 !important; 
         color: white !important;
@@ -117,7 +119,6 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
-    /* Botones Secundarios */
     button[kind="secondary"] {
         border: 1px solid rgba(168, 85, 247, 0.2) !important;
         color: #d8b4fe !important;
@@ -131,7 +132,6 @@ st.markdown("""
         background-color: rgba(168, 85, 247, 0.15) !important;
     }
 
-    /* Diseño de las Pestañas (Tabs) */
     button[data-baseweb="tab"] {
         font-size: 1.1rem !important;
         color: #cbd5e1 !important;
@@ -146,13 +146,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONEXIÓN CON LAS LLAVES SECRETAS ---
+# --- CONEXIÓN SOLO CON GOOGLE (Textos) ---
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
-    API_KEY_HF = st.secrets.get("HF_API_KEY", "").strip()
+    # ¡Ya no necesitamos buscar la clave de Hugging Face!
 except Exception as e:
-    st.error("🚨 ERROR CRÍTICO: Revisa los Secrets de Streamlit.")
+    st.error("🚨 ERROR CRÍTICO: Revisa tu clave de Google en los Secrets.")
     st.stop()
 
 # --- 🎯 ZONA DEL LOGO ---
@@ -176,19 +176,17 @@ st.markdown("<br>", unsafe_allow_html=True)
 # --- SISTEMA DE PESTAÑAS (TABS) TODO EN UNO ---
 # =========================================================
 
-tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Imágenes"])
+tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Portadas"])
 
 # ---------------------------------------------------------
-# PESTAÑA 1: GENERADOR DE GUIONES VIRALES (NUEVO ORDEN)
+# PESTAÑA 1: GENERADOR DE GUIONES VIRALES
 # ---------------------------------------------------------
 with tab_guiones:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 1. Títulos
     st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; margin-top: -10px; text-shadow: 1px 1px 4px black;'>1º Selecciona tu Red Social</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Elige la plataforma para la que quieres crear contenido.</p>", unsafe_allow_html=True)
 
-    # 2. Botones de Redes Sociales (Arriba)
     espacio_izq, col_tk, col_ig, col_yt, espacio_der = st.columns([1, 1.5, 1.5, 1.5, 1])
 
     with col_tk:
@@ -208,24 +206,21 @@ with tab_guiones:
 
     st.markdown("<hr style='border:1px solid rgba(168, 85, 247, 0.2); margin: 30px 0;'>", unsafe_allow_html=True)
 
-    # 3. Caja de texto MULTILÍNEA GIGANTE (Abajo)
     st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>2º Describe tu Negocio al Detalle</h3>", unsafe_allow_html=True)
     
     nicho_cliente = st.text_area(
         "Oculto 1", 
-        placeholder='Ej: "Soy entrenador personal online y quiero vender retos de 30 días para perder peso en casa. Mi público objetivo son madres ocupadas. El tono debe ser motivador pero directo..."\n\n(Puedes escribir varios renglones aquí)', 
+        placeholder='Ej: "Soy entrenador personal online y quiero vender retos de 30 días para perder peso en casa. Mi público objetivo son madres ocupadas..."\n\n(Puedes escribir varios renglones aquí)', 
         label_visibility="collapsed",
-        height=140 # Altura de la caja (caben varios renglones sin hacer scroll)
+        height=140 
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 4. Botón Generar (Centrado y grande)
     col_esp1, col_btn_gen, col_esp2 = st.columns([1, 1.5, 1])
     with col_btn_gen:
         boton_generar = st.button("✨ Generar Guiones Virales", type="primary", use_container_width=True, key="btn_ideas")
 
-    # 5. La Magia
     if boton_generar:
         if nicho_cliente:
             red_elegida = st.session_state['red_activa']
@@ -241,14 +236,13 @@ with tab_guiones:
             st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (HUGGING FACE)
+# PESTAÑA 2: CREADOR DE IMÁGENES (NUEVO MOTOR SÚPER RÁPIDO)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>Pinta tus Portadas con IA</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Describe la imagen con máximo detalle. Funciona mucho mejor si escribes en <b>inglés</b>.</p>", unsafe_allow_html=True)
 
-    # Caja de texto multilínea también para las imágenes
     prompt_imagen = st.text_area(
         "Oculto 2", 
         placeholder='Ej: A futuristic cyberpunk cat ninja standing on a neon glowing roof, holding a katana, rainy night, highly detailed, 8k resolution, cinematic lighting...', 
@@ -258,17 +252,15 @@ with tab_imagenes:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Botón centrado
     col_esp_img1, col_btn_img, col_esp_img2 = st.columns([1, 1.5, 1])
     with col_btn_img:
-        boton_imagen = st.button("🎨 Crear Imagen", type="primary", use_container_width=True, key="btn_img")
+        boton_imagen = st.button("🎨 Crear Imagen Mágica", type="primary", use_container_width=True, key="btn_img")
 
     if boton_imagen:
-        if not API_KEY_HF or API_KEY_HF == "":
-            st.error("⚠️ Falta la clave de Hugging Face. Añádela a los Secrets de Streamlit.")
-        elif prompt_imagen:
-            with st.spinner('Pintando tu obra de arte... (Puede tardar hasta 30 segundos)'):
-                imagen_generada = generar_imagen_gratis(prompt_imagen, API_KEY_HF)
+        if prompt_imagen:
+            # Quitamos el mensaje de "servidor despertando" porque Pollinations es instantáneo
+            with st.spinner('🎨 Generando obra de arte a la velocidad de la luz...'):
+                imagen_generada = generar_imagen_ultra(prompt_imagen)
                 
                 if imagen_generada:
                     st.success("¡Imagen creada con éxito!")
