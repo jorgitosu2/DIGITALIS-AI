@@ -7,7 +7,7 @@ from io import BytesIO
 from PIL import Image
 import urllib.parse
 import random
-import time # <-- NUEVA HERRAMIENTA para los reintentos automáticos
+import time 
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Herramientas Virales | DIGITALIS IA", page_icon="favicon.png", layout="centered")
@@ -32,33 +32,30 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN MÁGICA MEJORADA: IMÁGENES ULTRA (CON AUTO-REINTENTO Y DISFRAZ) ---
+# --- FUNCIÓN MÁGICA: IMÁGENES ULTRA (CON 5 REINTENTOS) ---
 def generar_imagen_ultra(prompt):
     prompt_mejorado = f"{prompt}, masterpiece, best quality, highly detailed, cinematic lighting"
     prompt_url = urllib.parse.quote(prompt_mejorado)
     semilla = random.randint(1, 1000000)
     
-    # Reducimos un pelín la resolución (de 1024 a 800) para que el servidor gratuito no nos rechace por peso
     url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=800&height=800&seed={semilla}&nologo=true"
     
-    # EL DISFRAZ: Le hacemos creer al servidor que somos Google Chrome
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     
-    # EL BUCLE ANTI-SATURACIÓN: Intentará generar la imagen hasta 3 veces
-    for intento in range(3):
+    # Aumentamos a 5 intentos para saltarnos la saturación
+    for intento in range(5):
         try:
             response = requests.get(url, headers=headers, timeout=25)
             if response.status_code == 200:
                 return Image.open(BytesIO(response.content))
             else:
-                time.sleep(2) # Si está saturado, espera 2 segundos y vuelve a intentarlo en silencio
+                time.sleep(3) # Espera 3 segundos antes de volver a intentar
         except Exception as e:
-            time.sleep(2) # Si hay corte de internet, espera 2 segundos y reintenta
+            time.sleep(3)
             continue
             
-    # Si después de 3 intentos sigue saturado, entonces sí mostramos el error
     st.error("❌ Los servidores de imágenes gratuitos están experimentando un pico de tráfico extremo ahora mismo. Por favor, inténtalo de nuevo en 1 minuto.")
     return None
 
@@ -180,7 +177,8 @@ st.markdown("<br>", unsafe_allow_html=True)
 # --- SISTEMA DE PESTAÑAS (TABS) TODO EN UNO ---
 # =========================================================
 
-tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Portadas"])
+# ¡AQUÍ ESTÁ EL NOMBRE CORREGIDO!
+tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Imágenes"])
 
 # ---------------------------------------------------------
 # PESTAÑA 1: GENERADOR DE GUIONES VIRALES
@@ -240,11 +238,13 @@ with tab_guiones:
             st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (CON AUTO-REINTENTO)
+# PESTAÑA 2: CREADOR DE IMÁGENES
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>Pinta tus Portadas con IA</h3>", unsafe_allow_html=True)
+    
+    # También he arreglado este título interior
+    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>Creador de Imágenes por IA</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Describe la imagen con máximo detalle. Funciona mucho mejor si escribes en <b>inglés</b>.</p>", unsafe_allow_html=True)
 
     prompt_imagen = st.text_area(
@@ -262,7 +262,7 @@ with tab_imagenes:
 
     if boton_imagen:
         if prompt_imagen:
-            with st.spinner('🎨 Generando obra de arte a la velocidad de la luz... (Puede tardar unos segundos extra si el servidor está lleno)'):
+            with st.spinner('🎨 Generando obra de arte... (El sistema reintentará varias veces si hay saturación)'):
                 imagen_generada = generar_imagen_ultra(prompt_imagen)
                 
                 if imagen_generada:
