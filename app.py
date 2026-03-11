@@ -2,12 +2,10 @@ import streamlit as st
 from google import genai
 import os
 import base64
-import requests
 from io import BytesIO
 from PIL import Image
 import urllib.parse
 import random
-import time 
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Herramientas Virales | DIGITALIS IA", page_icon="favicon.png", layout="centered")
@@ -32,31 +30,18 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN MÁGICA: IMÁGENES ULTRA ---
-def generar_imagen_ultra(prompt):
-    prompt_mejorado = f"{prompt}, masterpiece, best quality, highly detailed, cinematic lighting"
+# --- FUNCIÓN MÁGICA: IMÁGENES DIRECTAS (ANTI-BLOQUEO) ---
+def generar_enlace_imagen(prompt):
+    """Crea la URL exacta de la imagen para que el navegador del cliente la cargue directamente, saltando bloqueos"""
+    prompt_mejorado = f"{prompt}, masterpiece, best quality, highly detailed, 8k resolution, cinematic lighting"
     prompt_url = urllib.parse.quote(prompt_mejorado)
     semilla = random.randint(1, 1000000)
-    url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=800&height=800&seed={semilla}&nologo=true"
-    
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"}
-    
-    for intento in range(5):
-        try:
-            response = requests.get(url, headers=headers, timeout=25)
-            if response.status_code == 200:
-                return Image.open(BytesIO(response.content))
-            else:
-                time.sleep(3) 
-        except Exception as e:
-            time.sleep(3)
-            continue
-            
-    st.error("❌ Los servidores gratuitos están saturados. Por favor, inténtalo de nuevo en 1 minuto.")
-    return None
+    # Genera la URL limpia sin pedirle permiso al servidor primero
+    url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&seed={semilla}&nologo=true"
+    return url
 
 # =========================================================
-# --- DISEÑO VISUAL PREMIUM (CAJAS Y SUBIDA DE ARCHIVOS) ---
+# --- DISEÑO VISUAL PREMIUM ---
 # =========================================================
 st.markdown("""
     <style>
@@ -99,7 +84,6 @@ st.markdown("""
         box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
     }
 
-    /* Estilo para la zona de subir imágenes */
     [data-testid="stFileUploader"] {
         background-color: rgba(20, 20, 25, 0.7) !important;
         border: 1px dashed rgba(168, 85, 247, 0.5) !important;
@@ -152,7 +136,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONEXIÓN CON GOOGLE (Textos y Visión) ---
+# --- CONEXIÓN CON GOOGLE (Para textos y analizar la foto que subes) ---
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
@@ -180,7 +164,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 # =========================================================
 # --- SISTEMA DE PESTAÑAS (TABS) TODO EN UNO ---
 # =========================================================
-
 tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Imágenes"])
 
 # ---------------------------------------------------------
@@ -215,7 +198,7 @@ with tab_guiones:
     
     nicho_cliente = st.text_area(
         "Oculto 1", 
-        placeholder='Ej: "Soy entrenador personal online y quiero vender retos de 30 días para perder peso en casa. Mi público objetivo son madres ocupadas..."\n\n(Puedes escribir varios renglones aquí)', 
+        placeholder='Ej: "Soy entrenador personal online y quiero vender retos de 30 días para perder peso en casa. Mi público objetivo son madres ocupadas..."', 
         label_visibility="collapsed",
         height=140 
     )
@@ -241,14 +224,13 @@ with tab_guiones:
             st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (TEXTO + IMAGEN DE REFERENCIA)
+# PESTAÑA 2: CREADOR DE IMÁGENES (SISTEMA DIRECTO ANTI-BLOQUEO)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>Creador de Imágenes por IA</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Sube una foto de referencia o simplemente describe lo que quieres crear.</p>", unsafe_allow_html=True)
 
-    # NUEVO: Subida de imagen
     imagen_subida = st.file_uploader("Sube tu imagen (Opcional)", type=["png", "jpg", "jpeg"])
 
     prompt_imagen = st.text_area(
@@ -266,18 +248,16 @@ with tab_imagenes:
 
     if boton_imagen:
         if prompt_imagen or imagen_subida:
-            with st.spinner('🎨 Generando obra de arte a la velocidad de la luz...'):
-                
-                texto_final_para_ia = prompt_imagen
+            
+            texto_final_para_ia = prompt_imagen
 
-                # SI SUBIÓ UNA IMAGEN: Usamos a Gemini como puente para "entender" la foto
-                if imagen_subida is not None:
-                    st.info("👁️ Analizando la imagen de referencia...")
+            # 1. Si subió una foto, la analiza Google Gemini primero
+            if imagen_subida is not None:
+                with st.spinner("👁️ Analizando la foto de referencia con Google Gemini..."):
                     try:
                         img_pil = Image.open(imagen_subida)
-                        prompt_gemini = f"Describe esta imagen con el mayor nivel de detalle posible en INGLÉS (colores, estilo, personajes). Luego, mézclalo lógicamente con esta petición del usuario: '{prompt_imagen}'. Devuelve SOLO el prompt final en INGLÉS, listo para generar una imagen nueva."
+                        prompt_gemini = f"Describe esta imagen al máximo detalle posible en INGLÉS. Luego, aplica obligatoriamente esta modificación que pide el usuario: '{prompt_imagen}'. Devuelve SOLO el prompt final en INGLÉS listo para generar una imagen nueva. Manten la esencia original pero aplica el cambio."
                         
-                        # Le mandamos la foto y las instrucciones a Google Gemini
                         respuesta_gemini = client.models.generate_content(
                             model='gemini-2.5-flash', 
                             contents=[img_pil, prompt_gemini]
@@ -285,16 +265,23 @@ with tab_imagenes:
                         texto_final_para_ia = respuesta_gemini.text
                     except Exception as e:
                         st.error("Hubo un error al leer tu imagen de referencia.")
+            
+            # 2. Genera la imagen inyectando el código directamente en el navegador del cliente
+            if texto_final_para_ia:
+                st.success("¡Tu petición se ha enviado con éxito!")
+                st.info("🎨 Cargando obra de arte... (Puede tardar un par de segundos en aparecer)")
                 
-                # Generamos la imagen con el texto final (ya sea el del usuario o el de Gemini)
-                if texto_final_para_ia:
-                    imagen_generada = generar_imagen_ultra(texto_final_para_ia)
-                    
-                    if imagen_generada:
-                        st.success("¡Imagen creada con éxito!")
-                        col_esp1, col_img_centro, col_esp2 = st.columns([0.1, 0.8, 0.1])
-                        with col_img_centro:
-                            st.image(imagen_generada, caption='Tu nueva imagen generada por IA', use_container_width=True)
+                url_final = generar_enlace_imagen(texto_final_para_ia)
+                
+                # Usamos HTML para que Chrome/Safari descargue la foto, no Streamlit
+                codigo_html = f"""
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px;">
+                    <img src="{url_final}" style="width: 80%; border-radius: 12px; box-shadow: 0 10px 25px rgba(168,85,247,0.5);">
+                    <a href="{url_final}" target="_blank" style="margin-top: 15px; padding: 10px 20px; background-color: #a855f7; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">⬇️ Descargar en HD</a>
+                </div>
+                """
+                st.markdown(codigo_html, unsafe_allow_html=True)
+
         else:
             st.warning("Por favor, describe qué quieres que la IA pinte o sube una imagen.")
 
