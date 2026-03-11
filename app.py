@@ -32,35 +32,31 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN MÁGICA: IMÁGENES ULTRA (CON 5 REINTENTOS) ---
+# --- FUNCIÓN MÁGICA: IMÁGENES ULTRA ---
 def generar_imagen_ultra(prompt):
     prompt_mejorado = f"{prompt}, masterpiece, best quality, highly detailed, cinematic lighting"
     prompt_url = urllib.parse.quote(prompt_mejorado)
     semilla = random.randint(1, 1000000)
-    
     url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=800&height=800&seed={semilla}&nologo=true"
     
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"}
     
-    # Aumentamos a 5 intentos para saltarnos la saturación
     for intento in range(5):
         try:
             response = requests.get(url, headers=headers, timeout=25)
             if response.status_code == 200:
                 return Image.open(BytesIO(response.content))
             else:
-                time.sleep(3) # Espera 3 segundos antes de volver a intentar
+                time.sleep(3) 
         except Exception as e:
             time.sleep(3)
             continue
             
-    st.error("❌ Los servidores de imágenes gratuitos están experimentando un pico de tráfico extremo ahora mismo. Por favor, inténtalo de nuevo en 1 minuto.")
+    st.error("❌ Los servidores gratuitos están saturados. Por favor, inténtalo de nuevo en 1 minuto.")
     return None
 
 # =========================================================
-# --- DISEÑO VISUAL PREMIUM (CAJAS GRANDES MULTILÍNEA) ---
+# --- DISEÑO VISUAL PREMIUM (CAJAS Y SUBIDA DE ARCHIVOS) ---
 # =========================================================
 st.markdown("""
     <style>
@@ -101,6 +97,14 @@ st.markdown("""
         border-color: #a855f7 !important;
         background-color: rgba(30, 20, 40, 0.9) !important;
         box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
+    }
+
+    /* Estilo para la zona de subir imágenes */
+    [data-testid="stFileUploader"] {
+        background-color: rgba(20, 20, 25, 0.7) !important;
+        border: 1px dashed rgba(168, 85, 247, 0.5) !important;
+        border-radius: 8px;
+        padding: 15px;
     }
 
     button[kind="primary"] {
@@ -148,7 +152,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONEXIÓN SOLO CON GOOGLE (Textos) ---
+# --- CONEXIÓN CON GOOGLE (Textos y Visión) ---
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
@@ -177,7 +181,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 # --- SISTEMA DE PESTAÑAS (TABS) TODO EN UNO ---
 # =========================================================
 
-# ¡AQUÍ ESTÁ EL NOMBRE CORREGIDO!
 tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Imágenes"])
 
 # ---------------------------------------------------------
@@ -238,18 +241,19 @@ with tab_guiones:
             st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES
+# PESTAÑA 2: CREADOR DE IMÁGENES (TEXTO + IMAGEN DE REFERENCIA)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # También he arreglado este título interior
     st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>Creador de Imágenes por IA</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Describe la imagen con máximo detalle. Funciona mucho mejor si escribes en <b>inglés</b>.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Sube una foto de referencia o simplemente describe lo que quieres crear.</p>", unsafe_allow_html=True)
+
+    # NUEVO: Subida de imagen
+    imagen_subida = st.file_uploader("Sube tu imagen (Opcional)", type=["png", "jpg", "jpeg"])
 
     prompt_imagen = st.text_area(
         "Oculto 2", 
-        placeholder='Ej: A futuristic cyberpunk cat ninja standing on a neon glowing roof, holding a katana, rainy night, highly detailed, 8k resolution, cinematic lighting...', 
+        placeholder='Ej: "Basándote en mi foto, haz que parezca que estoy en una ciudad Cyberpunk en Tokio" o "Un gato ninja en la luna"...', 
         label_visibility="collapsed",
         height=100
     )
@@ -261,17 +265,38 @@ with tab_imagenes:
         boton_imagen = st.button("🎨 Crear Imagen Mágica", type="primary", use_container_width=True, key="btn_img")
 
     if boton_imagen:
-        if prompt_imagen:
-            with st.spinner('🎨 Generando obra de arte... (El sistema reintentará varias veces si hay saturación)'):
-                imagen_generada = generar_imagen_ultra(prompt_imagen)
+        if prompt_imagen or imagen_subida:
+            with st.spinner('🎨 Generando obra de arte a la velocidad de la luz...'):
                 
-                if imagen_generada:
-                    st.success("¡Imagen creada con éxito!")
-                    col_esp1, col_img_centro, col_esp2 = st.columns([0.1, 0.8, 0.1])
-                    with col_img_centro:
-                        st.image(imagen_generada, caption=f'"{prompt_imagen}"', use_container_width=True)
+                texto_final_para_ia = prompt_imagen
+
+                # SI SUBIÓ UNA IMAGEN: Usamos a Gemini como puente para "entender" la foto
+                if imagen_subida is not None:
+                    st.info("👁️ Analizando la imagen de referencia...")
+                    try:
+                        img_pil = Image.open(imagen_subida)
+                        prompt_gemini = f"Describe esta imagen con el mayor nivel de detalle posible en INGLÉS (colores, estilo, personajes). Luego, mézclalo lógicamente con esta petición del usuario: '{prompt_imagen}'. Devuelve SOLO el prompt final en INGLÉS, listo para generar una imagen nueva."
+                        
+                        # Le mandamos la foto y las instrucciones a Google Gemini
+                        respuesta_gemini = client.models.generate_content(
+                            model='gemini-2.5-flash', 
+                            contents=[img_pil, prompt_gemini]
+                        )
+                        texto_final_para_ia = respuesta_gemini.text
+                    except Exception as e:
+                        st.error("Hubo un error al leer tu imagen de referencia.")
+                
+                # Generamos la imagen con el texto final (ya sea el del usuario o el de Gemini)
+                if texto_final_para_ia:
+                    imagen_generada = generar_imagen_ultra(texto_final_para_ia)
+                    
+                    if imagen_generada:
+                        st.success("¡Imagen creada con éxito!")
+                        col_esp1, col_img_centro, col_esp2 = st.columns([0.1, 0.8, 0.1])
+                        with col_img_centro:
+                            st.image(imagen_generada, caption='Tu nueva imagen generada por IA', use_container_width=True)
         else:
-            st.warning("Por favor, describe qué quieres que la IA pinte.")
+            st.warning("Por favor, describe qué quieres que la IA pinte o sube una imagen.")
 
 # --- PIE DE PÁGINA ---
 st.markdown("<p style='text-align: center; font-size: 13px; color: #a855f7; margin-top: 60px;'>Desarrollado con 💜 por <b>DIGITALIS IA</b></p>", unsafe_allow_html=True)
