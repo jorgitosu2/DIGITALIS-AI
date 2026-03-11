@@ -29,35 +29,32 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN: GENERAR IMÁGENES GRATIS (SERVIDOR NUEVO ACTUALIZADO) ---
+# --- FUNCIÓN: GENERAR IMÁGENES GRATIS ---
 def generar_imagen_gratis(prompt, api_key):
-    # ¡AQUÍ ESTÁ LA CORRECCIÓN! Usamos la nueva ruta 'router.huggingface.co/hf-inference'
     API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
     headers = {"Authorization": f"Bearer {api_key}"}
-    
     prompt_mejorado = f"masterpiece, best quality, highly detailed, {prompt}"
     payload = {"inputs": prompt_mejorado}
     
     try:
         response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-        
         if response.status_code == 200:
             return Image.open(BytesIO(response.content))
         elif response.status_code == 401:
-            st.error("🔑 ERROR DE CLAVE: Tu clave de Hugging Face es inválida o no la has puesto bien en los Secrets.")
+            st.error("🔑 ERROR DE CLAVE: Tu clave de Hugging Face es inválida.")
             return None
         elif response.status_code == 503:
-            st.warning("⏳ EL SERVIDOR ESTÁ DESPERTANDO. La IA gratuita tarda unos 20 segundos en arrancar. Espera un momento y vuelve a darle a Crear Imagen.")
+            st.warning("⏳ EL SERVIDOR ESTÁ DESPERTANDO. Espera 20 segundos y vuelve a darle a Crear Imagen.")
             return None
         else:
-            st.error(f"❌ Error técnico del servidor de imágenes. Detalles: {response.text}")
+            st.error(f"❌ Error técnico: {response.text}")
             return None
     except Exception as e:
-        st.error(f"Error de conexión de red: {e}")
+        st.error(f"Error de conexión: {e}")
         return None
 
 # =========================================================
-# --- DISEÑO VISUAL PREMIUM (PÚRPURA & NEÓN) ---
+# --- DISEÑO VISUAL PREMIUM (CAJAS GRANDES MULTILÍNEA) ---
 # =========================================================
 st.markdown("""
     <style>
@@ -81,40 +78,46 @@ st.markdown("""
     }
     header { visibility: hidden; }
 
-    div[data-baseweb="input"] {
+    /* Efecto cristal para cajas de texto normales y MULTILÍNEA (Text Area) */
+    div[data-baseweb="input"], div[data-baseweb="textarea"] {
         background-color: rgba(20, 20, 25, 0.7) !important; 
         backdrop-filter: blur(10px); 
         border: 1px solid rgba(168, 85, 247, 0.3) !important;
         border-radius: 8px !important;
         transition: all 0.3s ease;
     }
-    div[data-baseweb="input"] input {
+    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
         color: #e2e8f0 !important;
-        padding: 12px !important;
-        font-size: 1rem !important;
+        padding: 15px !important;
+        font-size: 1.05rem !important;
+        line-height: 1.5 !important;
     }
-    div[data-baseweb="input"]:focus-within {
+    div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within {
         border-color: #a855f7 !important;
         background-color: rgba(30, 20, 40, 0.9) !important;
         box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
     }
 
+    /* Botón Principal Púrpura */
     button[kind="primary"] {
         background-color: #334155 !important; 
         color: white !important;
         border: 1px solid #475569 !important;
         border-radius: 8px !important;
         font-weight: bold;
-        height: 48px !important; 
+        height: 50px !important; 
         padding: 0px !important;
         box-shadow: 0 10px 25px -5px rgba(168, 85, 247, 0.8) !important; 
         transition: all 0.3s ease;
+        font-size: 1.1rem !important;
     }
     button[kind="primary"]:hover {
         background-color: #a855f7 !important; 
         box-shadow: 0 15px 30px -5px rgba(168, 85, 247, 1) !important;
+        transform: translateY(-2px);
     }
 
+    /* Botones Secundarios */
     button[kind="secondary"] {
         border: 1px solid rgba(168, 85, 247, 0.2) !important;
         color: #d8b4fe !important;
@@ -128,6 +131,7 @@ st.markdown("""
         background-color: rgba(168, 85, 247, 0.15) !important;
     }
 
+    /* Diseño de las Pestañas (Tabs) */
     button[data-baseweb="tab"] {
         font-size: 1.1rem !important;
         color: #cbd5e1 !important;
@@ -151,7 +155,7 @@ except Exception as e:
     st.error("🚨 ERROR CRÍTICO: Revisa los Secrets de Streamlit.")
     st.stop()
 
-# --- 🎯 ZONA DEL LOGO DE LA EMPRESA ---
+# --- 🎯 ZONA DEL LOGO ---
 col_logo1, col_logo2, col_logo3 = st.columns([1, 1.2, 1])
 with col_logo2:
     if os.path.exists("digi ai.png"):
@@ -159,7 +163,7 @@ with col_logo2:
 
 st.markdown("<div style='margin-top: -30px;'></div>", unsafe_allow_html=True)
 
-# --- 🎯 EL TÍTULO PRINCIPAL ---
+# --- 🎯 TÍTULO PRINCIPAL ---
 st.markdown("""
     <h1 style='text-align: center; margin-top: -15px;'>
         <span style='color: #a855f7; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);'>GENERADOR DE IDEAS VIRALES</span><br>
@@ -175,21 +179,16 @@ st.markdown("<br>", unsafe_allow_html=True)
 tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Imágenes"])
 
 # ---------------------------------------------------------
-# PESTAÑA 1: GENERADOR DE GUIONES VIRALES
+# PESTAÑA 1: GENERADOR DE GUIONES VIRALES (NUEVO ORDEN)
 # ---------------------------------------------------------
 with tab_guiones:
     st.markdown("<br>", unsafe_allow_html=True)
-    col_input, col_btn = st.columns([3, 1]) 
+    
+    # 1. Títulos
+    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; margin-top: -10px; text-shadow: 1px 1px 4px black;'>1º Selecciona tu Red Social</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Elige la plataforma para la que quieres crear contenido.</p>", unsafe_allow_html=True)
 
-    with col_input:
-        nicho_cliente = st.text_input("Oculto 1", placeholder='Ej: "viralidad, negocios"...', label_visibility="collapsed")
-
-    with col_btn:
-        boton_generar = st.button("Generar Ideas", type="primary", use_container_width=True, key="btn_ideas")
-
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.3rem; margin-top: 10px; text-shadow: 1px 1px 4px black;'>Genera Ideas para TikTok, Instagram, YouTube</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-top: -10px; margin-bottom: 30px; text-shadow: 1px 1px 2px black;'>Introduce palabras clave para recibir ideas de contenido listas para grabar.</p>", unsafe_allow_html=True)
-
+    # 2. Botones de Redes Sociales (Arriba)
     espacio_izq, col_tk, col_ig, col_yt, espacio_der = st.columns([1, 1.5, 1.5, 1.5, 1])
 
     with col_tk:
@@ -207,8 +206,26 @@ with tab_guiones:
         tipo_yt = "primary" if st.session_state['red_activa'] == 'YouTube Shorts' else "secondary"
         st.button("YouTube", on_click=seleccionar_red, args=('YouTube Shorts',), type=tipo_yt, use_container_width=True, key="btn_yt")
 
+    st.markdown("<hr style='border:1px solid rgba(168, 85, 247, 0.2); margin: 30px 0;'>", unsafe_allow_html=True)
+
+    # 3. Caja de texto MULTILÍNEA GIGANTE (Abajo)
+    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>2º Describe tu Negocio al Detalle</h3>", unsafe_allow_html=True)
+    
+    nicho_cliente = st.text_area(
+        "Oculto 1", 
+        placeholder='Ej: "Soy entrenador personal online y quiero vender retos de 30 días para perder peso en casa. Mi público objetivo son madres ocupadas. El tono debe ser motivador pero directo..."\n\n(Puedes escribir varios renglones aquí)', 
+        label_visibility="collapsed",
+        height=140 # Altura de la caja (caben varios renglones sin hacer scroll)
+    )
+
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # 4. Botón Generar (Centrado y grande)
+    col_esp1, col_btn_gen, col_esp2 = st.columns([1, 1.5, 1])
+    with col_btn_gen:
+        boton_generar = st.button("✨ Generar Guiones Virales", type="primary", use_container_width=True, key="btn_ideas")
+
+    # 5. La Magia
     if boton_generar:
         if nicho_cliente:
             red_elegida = st.session_state['red_activa']
@@ -221,30 +238,36 @@ with tab_guiones:
                 except Exception as e:
                     st.error("❌ ERROR DE CONEXIÓN CON GOOGLE")
         else:
-            st.warning("Por favor, introduce palabras clave primero.")
+            st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
 # PESTAÑA 2: CREADOR DE IMÁGENES (HUGGING FACE)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    col_input_img, col_btn_img = st.columns([3, 1]) 
+    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>Pinta tus Portadas con IA</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Describe la imagen con máximo detalle. Funciona mucho mejor si escribes en <b>inglés</b>.</p>", unsafe_allow_html=True)
 
-    with col_input_img:
-        prompt_imagen = st.text_input("Oculto 2", placeholder='Ej: Un astronauta montando a caballo en marte, estilo realista', label_visibility="collapsed")
+    # Caja de texto multilínea también para las imágenes
+    prompt_imagen = st.text_area(
+        "Oculto 2", 
+        placeholder='Ej: A futuristic cyberpunk cat ninja standing on a neon glowing roof, holding a katana, rainy night, highly detailed, 8k resolution, cinematic lighting...', 
+        label_visibility="collapsed",
+        height=100
+    )
 
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Botón centrado
+    col_esp_img1, col_btn_img, col_esp_img2 = st.columns([1, 1.5, 1])
     with col_btn_img:
-        boton_imagen = st.button("Crear Imagen", type="primary", use_container_width=True, key="btn_img")
-
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.3rem; margin-top: 10px; text-shadow: 1px 1px 4px black;'>Generador de Imágenes por IA</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-top: -10px; margin-bottom: 30px; text-shadow: 1px 1px 2px black;'>Describe la imagen que quieres crear. Cuanto más detallado, mejor (funciona aún mejor en inglés).</p>", unsafe_allow_html=True)
+        boton_imagen = st.button("🎨 Crear Imagen", type="primary", use_container_width=True, key="btn_img")
 
     if boton_imagen:
         if not API_KEY_HF or API_KEY_HF == "":
-            st.error("⚠️ Falta la clave de Hugging Face. Añade `HF_API_KEY = 'tu_clave'` en los Secrets de Streamlit.")
+            st.error("⚠️ Falta la clave de Hugging Face. Añádela a los Secrets de Streamlit.")
         elif prompt_imagen:
-            with st.spinner('🎨 Pintando tu obra de arte... (Puede tardar hasta 30 segundos)'):
+            with st.spinner('Pintando tu obra de arte... (Puede tardar hasta 30 segundos)'):
                 imagen_generada = generar_imagen_gratis(prompt_imagen, API_KEY_HF)
                 
                 if imagen_generada:
