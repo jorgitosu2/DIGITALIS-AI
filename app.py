@@ -29,9 +29,10 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN: GENERAR IMÁGENES GRATIS (HUGGING FACE) MEJORADA ---
+# --- FUNCIÓN: GENERAR IMÁGENES GRATIS (SERVIDOR NUEVO ACTUALIZADO) ---
 def generar_imagen_gratis(prompt, api_key):
-    API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+    # ¡AQUÍ ESTÁ LA CORRECCIÓN! Usamos la nueva ruta 'router.huggingface.co/hf-inference'
+    API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0"
     headers = {"Authorization": f"Bearer {api_key}"}
     
     prompt_mejorado = f"masterpiece, best quality, highly detailed, {prompt}"
@@ -43,7 +44,7 @@ def generar_imagen_gratis(prompt, api_key):
         if response.status_code == 200:
             return Image.open(BytesIO(response.content))
         elif response.status_code == 401:
-            st.error("🔑 ERROR DE CLAVE: Tu clave de Hugging Face es inválida o no la has puesto bien en los Secrets de Streamlit.")
+            st.error("🔑 ERROR DE CLAVE: Tu clave de Hugging Face es inválida o no la has puesto bien en los Secrets.")
             return None
         elif response.status_code == 503:
             st.warning("⏳ EL SERVIDOR ESTÁ DESPERTANDO. La IA gratuita tarda unos 20 segundos en arrancar. Espera un momento y vuelve a darle a Crear Imagen.")
@@ -158,7 +159,7 @@ with col_logo2:
 
 st.markdown("<div style='margin-top: -30px;'></div>", unsafe_allow_html=True)
 
-# --- 🎯 EL TÍTULO PRINCIPAL (HA VUELTO) ---
+# --- 🎯 EL TÍTULO PRINCIPAL ---
 st.markdown("""
     <h1 style='text-align: center; margin-top: -15px;'>
         <span style='color: #a855f7; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);'>GENERADOR DE IDEAS VIRALES</span><br>
