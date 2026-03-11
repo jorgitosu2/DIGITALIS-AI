@@ -30,13 +30,11 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN MÁGICA: IMÁGENES DIRECTAS (ANTI-BLOQUEO) ---
+# --- FUNCIÓN MÁGICA: IMÁGENES DIRECTAS ---
 def generar_enlace_imagen(prompt):
-    """Crea la URL exacta de la imagen para que el navegador del cliente la cargue directamente, saltando bloqueos"""
-    prompt_mejorado = f"{prompt}, masterpiece, best quality, highly detailed, 8k resolution, cinematic lighting"
+    prompt_mejorado = f"{prompt}, masterpiece, highly detailed, 8k resolution"
     prompt_url = urllib.parse.quote(prompt_mejorado)
     semilla = random.randint(1, 1000000)
-    # Genera la URL limpia sin pedirle permiso al servidor primero
     url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&seed={semilla}&nologo=true"
     return url
 
@@ -136,7 +134,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONEXIÓN CON GOOGLE (Para textos y analizar la foto que subes) ---
+# --- CONEXIÓN CON GOOGLE ---
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
@@ -224,7 +222,7 @@ with tab_guiones:
             st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (SISTEMA DIRECTO ANTI-BLOQUEO)
+# PESTAÑA 2: CREADOR DE IMÁGENES (CORRECCIÓN URL LARGA)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -235,7 +233,7 @@ with tab_imagenes:
 
     prompt_imagen = st.text_area(
         "Oculto 2", 
-        placeholder='Ej: "Basándote en mi foto, haz que parezca que estoy en una ciudad Cyberpunk en Tokio" o "Un gato ninja en la luna"...', 
+        placeholder='Ej: "Basándote en mi foto, ponle una gorra negra con logo de JEEP" o "Un gato ninja en la luna"...', 
         label_visibility="collapsed",
         height=100
     )
@@ -251,29 +249,34 @@ with tab_imagenes:
             
             texto_final_para_ia = prompt_imagen
 
-            # 1. Si subió una foto, la analiza Google Gemini primero
+            # 1. Si subió una foto, Gemini la analiza pero de forma MUY CORTA
             if imagen_subida is not None:
                 with st.spinner("👁️ Analizando la foto de referencia con Google Gemini..."):
                     try:
                         img_pil = Image.open(imagen_subida)
-                        prompt_gemini = f"Describe esta imagen al máximo detalle posible en INGLÉS. Luego, aplica obligatoriamente esta modificación que pide el usuario: '{prompt_imagen}'. Devuelve SOLO el prompt final en INGLÉS listo para generar una imagen nueva. Manten la esencia original pero aplica el cambio."
+                        
+                        # AQUI ESTA LA CORRECCIÓN CLAVE: Le obligamos a que use menos de 40 palabras
+                        prompt_gemini = f"Analiza esta imagen y crea un prompt en INGLÉS para generar una nueva versión. Mantén al sujeto principal pero aplica ESTE CAMBIO: '{prompt_imagen}'. REGLA VITAL: Tu respuesta debe ser ULTRA CORTA, directa, y no tener más de 30 palabras en total. Devuelve SOLO el texto en inglés."
                         
                         respuesta_gemini = client.models.generate_content(
                             model='gemini-2.5-flash', 
                             contents=[img_pil, prompt_gemini]
                         )
                         texto_final_para_ia = respuesta_gemini.text
+                        
+                        # Freno de emergencia por seguridad (Corta el texto si sigue siendo largo)
+                        texto_final_para_ia = texto_final_para_ia[:500] 
+                        
                     except Exception as e:
                         st.error("Hubo un error al leer tu imagen de referencia.")
             
-            # 2. Genera la imagen inyectando el código directamente en el navegador del cliente
+            # 2. Genera la imagen
             if texto_final_para_ia:
                 st.success("¡Tu petición se ha enviado con éxito!")
-                st.info("🎨 Cargando obra de arte... (Puede tardar un par de segundos en aparecer)")
+                st.info("🎨 Cargando obra de arte... (Aparecerá aquí debajo en breve)")
                 
                 url_final = generar_enlace_imagen(texto_final_para_ia)
                 
-                # Usamos HTML para que Chrome/Safari descargue la foto, no Streamlit
                 codigo_html = f"""
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px;">
                     <img src="{url_final}" style="width: 80%; border-radius: 12px; box-shadow: 0 10px 25px rgba(168,85,247,0.5);">
