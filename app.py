@@ -29,31 +29,30 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN: GENERAR IMÁGENES GRATIS (HUGGING FACE) ---
+# --- FUNCIÓN: GENERAR IMÁGENES GRATIS (HUGGING FACE) MEJORADA ---
 def generar_imagen_gratis(prompt, api_key):
-    # Usamos Stable Diffusion XL (Gratis y altísima calidad)
     API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
     headers = {"Authorization": f"Bearer {api_key}"}
     
-    # Truco de agencia: Le añadimos palabras clave para que siempre salga en alta calidad
-    prompt_mejorado = f"masterpiece, best quality, highly detailed, vivid colors, {prompt}"
+    prompt_mejorado = f"masterpiece, best quality, highly detailed, {prompt}"
     payload = {"inputs": prompt_mejorado}
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=50)
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
         
-        # Si todo va bien, devolvemos la imagen
         if response.status_code == 200:
             return Image.open(BytesIO(response.content))
-        # Si el servidor gratuito está dormido, pide esperar
-        elif "estimated_time" in response.text:
-            st.error("⏳ El servidor gratuito de imágenes se está despertando (Tarda unos 20 segundos). Por favor, dale al botón de crear de nuevo en un momento.")
+        elif response.status_code == 401:
+            st.error("🔑 ERROR DE CLAVE: Tu clave de Hugging Face es inválida o no la has puesto bien en los Secrets de Streamlit.")
+            return None
+        elif response.status_code == 503:
+            st.warning("⏳ EL SERVIDOR ESTÁ DESPERTANDO. La IA gratuita tarda unos 20 segundos en arrancar. Espera un momento y vuelve a darle a Crear Imagen.")
             return None
         else:
-            st.error(f"Error técnico al crear la imagen. Intenta cambiar la descripción.")
+            st.error(f"❌ Error técnico del servidor de imágenes. Detalles: {response.text}")
             return None
     except Exception as e:
-        st.error(f"Error de conexión con el servidor de imágenes.")
+        st.error(f"Error de conexión de red: {e}")
         return None
 
 # =========================================================
@@ -81,7 +80,6 @@ st.markdown("""
     }
     header { visibility: hidden; }
 
-    /* Efecto cristal para las cajas de texto */
     div[data-baseweb="input"] {
         background-color: rgba(20, 20, 25, 0.7) !important; 
         backdrop-filter: blur(10px); 
@@ -100,7 +98,6 @@ st.markdown("""
         box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
     }
 
-    /* Botón Principal Púrpura */
     button[kind="primary"] {
         background-color: #334155 !important; 
         color: white !important;
@@ -117,7 +114,6 @@ st.markdown("""
         box-shadow: 0 15px 30px -5px rgba(168, 85, 247, 1) !important;
     }
 
-    /* Botones Secundarios */
     button[kind="secondary"] {
         border: 1px solid rgba(168, 85, 247, 0.2) !important;
         color: #d8b4fe !important;
@@ -131,7 +127,6 @@ st.markdown("""
         background-color: rgba(168, 85, 247, 0.15) !important;
     }
 
-    /* Diseño de las Pestañas (Tabs) */
     button[data-baseweb="tab"] {
         font-size: 1.1rem !important;
         color: #cbd5e1 !important;
@@ -150,15 +145,12 @@ st.markdown("""
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
-    
-    # Buscamos la clave de imágenes. Si no la pusiste, no rompe la app.
     API_KEY_HF = st.secrets.get("HF_API_KEY", "").strip()
-        
 except Exception as e:
     st.error("🚨 ERROR CRÍTICO: Revisa los Secrets de Streamlit.")
     st.stop()
 
-# --- 🎯 ZONA DEL LOGO ---
+# --- 🎯 ZONA DEL LOGO DE LA EMPRESA ---
 col_logo1, col_logo2, col_logo3 = st.columns([1, 1.2, 1])
 with col_logo2:
     if os.path.exists("digi ai.png"):
@@ -166,14 +158,23 @@ with col_logo2:
 
 st.markdown("<div style='margin-top: -30px;'></div>", unsafe_allow_html=True)
 
+# --- 🎯 EL TÍTULO PRINCIPAL (HA VUELTO) ---
+st.markdown("""
+    <h1 style='text-align: center; margin-top: -15px;'>
+        <span style='color: #a855f7; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);'>GENERADOR DE IDEAS VIRALES</span><br>
+        <span style='font-size: 0.5em; color: #d8b4fe; font-weight: normal; text-shadow: 1px 1px 2px black;'>By DIGITALIS IA</span>
+    </h1>
+    """, unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
+
 # =========================================================
 # --- SISTEMA DE PESTAÑAS (TABS) TODO EN UNO ---
 # =========================================================
 
-tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Portadas"])
+tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Imágenes"])
 
 # ---------------------------------------------------------
-# PESTAÑA 1: GENERADOR DE GUIONES VIRALES (Tu código clásico)
+# PESTAÑA 1: GENERADOR DE GUIONES VIRALES
 # ---------------------------------------------------------
 with tab_guiones:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -222,7 +223,7 @@ with tab_guiones:
             st.warning("Por favor, introduce palabras clave primero.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (NUEVO - GRATIS)
+# PESTAÑA 2: CREADOR DE IMÁGENES (HUGGING FACE)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -239,15 +240,14 @@ with tab_imagenes:
     st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-top: -10px; margin-bottom: 30px; text-shadow: 1px 1px 2px black;'>Describe la imagen que quieres crear. Cuanto más detallado, mejor (funciona aún mejor en inglés).</p>", unsafe_allow_html=True)
 
     if boton_imagen:
-        if not API_KEY_HF:
-            st.error("⚠️ Falta la clave de Hugging Face. Configúrala en los Secrets de Streamlit como 'HF_API_KEY'.")
+        if not API_KEY_HF or API_KEY_HF == "":
+            st.error("⚠️ Falta la clave de Hugging Face. Añade `HF_API_KEY = 'tu_clave'` en los Secrets de Streamlit.")
         elif prompt_imagen:
-            with st.spinner('🎨 Pintando tu obra de arte... (Puede tardar hasta 20 segundos)'):
+            with st.spinner('🎨 Pintando tu obra de arte... (Puede tardar hasta 30 segundos)'):
                 imagen_generada = generar_imagen_gratis(prompt_imagen, API_KEY_HF)
                 
                 if imagen_generada:
                     st.success("¡Imagen creada con éxito!")
-                    # Centramos la imagen para que se vea premium
                     col_esp1, col_img_centro, col_esp2 = st.columns([0.1, 0.8, 0.1])
                     with col_img_centro:
                         st.image(imagen_generada, caption=f'"{prompt_imagen}"', use_container_width=True)
