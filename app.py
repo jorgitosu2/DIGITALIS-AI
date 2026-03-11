@@ -2,10 +2,10 @@ import streamlit as st
 from google import genai
 import os
 import base64
+import requests
 from io import BytesIO
 from PIL import Image
 import urllib.parse
-import random
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Herramientas Virales | DIGITALIS IA", page_icon="favicon.png", layout="centered")
@@ -30,13 +30,24 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# --- FUNCIÓN MÁGICA: IMÁGENES DIRECTAS ---
-def generar_enlace_imagen(prompt):
-    prompt_mejorado = f"{prompt}, masterpiece, highly detailed, 8k resolution"
+# --- FUNCIÓN MÁGICA 3.0: MOTOR PRODIA (MUY ESTABLE) ---
+def generar_imagen_estable(prompt):
+    prompt_mejorado = f"{prompt}, masterpiece, highly detailed, 8k, cinematic"
     prompt_url = urllib.parse.quote(prompt_mejorado)
-    semilla = random.randint(1, 1000000)
-    url = f"https://image.pollinations.ai/prompt/{prompt_url}?width=1024&height=1024&seed={semilla}&nologo=true"
-    return url
+    
+    # Cambiamos al motor Prodia (mucho más estable para peticiones de servidores)
+    url = f"https://image.pollinations.ai/prompt/{prompt_url}?model=prodia&nologo=true"
+    
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=25)
+        if response.status_code == 200:
+            return Image.open(BytesIO(response.content))
+        else:
+            return None
+    except Exception as e:
+        return None
 
 # =========================================================
 # --- DISEÑO VISUAL PREMIUM ---
@@ -222,7 +233,7 @@ with tab_guiones:
             st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (CORRECCIÓN URL LARGA)
+# PESTAÑA 2: CREADOR DE IMÁGENES (ESTABLE Y NATIVO)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -249,41 +260,34 @@ with tab_imagenes:
             
             texto_final_para_ia = prompt_imagen
 
-            # 1. Si subió una foto, Gemini la analiza pero de forma MUY CORTA
+            # 1. Gemini analiza la foto y resume
             if imagen_subida is not None:
                 with st.spinner("👁️ Analizando la foto de referencia con Google Gemini..."):
                     try:
                         img_pil = Image.open(imagen_subida)
-                        
-                        # AQUI ESTA LA CORRECCIÓN CLAVE: Le obligamos a que use menos de 40 palabras
-                        prompt_gemini = f"Analiza esta imagen y crea un prompt en INGLÉS para generar una nueva versión. Mantén al sujeto principal pero aplica ESTE CAMBIO: '{prompt_imagen}'. REGLA VITAL: Tu respuesta debe ser ULTRA CORTA, directa, y no tener más de 30 palabras en total. Devuelve SOLO el texto en inglés."
+                        prompt_gemini = f"Analiza esta imagen y crea un prompt en INGLÉS. Mantén al sujeto principal pero aplica ESTE CAMBIO: '{prompt_imagen}'. REGLA VITAL: Tu respuesta debe ser ULTRA CORTA y no tener más de 30 palabras. Devuelve SOLO el texto en inglés."
                         
                         respuesta_gemini = client.models.generate_content(
                             model='gemini-2.5-flash', 
                             contents=[img_pil, prompt_gemini]
                         )
-                        texto_final_para_ia = respuesta_gemini.text
-                        
-                        # Freno de emergencia por seguridad (Corta el texto si sigue siendo largo)
-                        texto_final_para_ia = texto_final_para_ia[:500] 
+                        texto_final_para_ia = respuesta_gemini.text[:500] 
                         
                     except Exception as e:
                         st.error("Hubo un error al leer tu imagen de referencia.")
             
-            # 2. Genera la imagen
+            # 2. Genera y MUESTRA la imagen dentro de la app (No más enlaces rotos)
             if texto_final_para_ia:
-                st.success("¡Tu petición se ha enviado con éxito!")
-                st.info("🎨 Cargando obra de arte... (Aparecerá aquí debajo en breve)")
-                
-                url_final = generar_enlace_imagen(texto_final_para_ia)
-                
-                codigo_html = f"""
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px;">
-                    <img src="{url_final}" style="width: 80%; border-radius: 12px; box-shadow: 0 10px 25px rgba(168,85,247,0.5);">
-                    <a href="{url_final}" target="_blank" style="margin-top: 15px; padding: 10px 20px; background-color: #a855f7; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">⬇️ Descargar en HD</a>
-                </div>
-                """
-                st.markdown(codigo_html, unsafe_allow_html=True)
+                with st.spinner('🎨 Generando obra de arte...'):
+                    imagen_generada = generar_imagen_estable(texto_final_para_ia)
+                    
+                    if imagen_generada:
+                        st.success("¡Imagen creada con éxito!")
+                        col_esp1, col_img_centro, col_esp2 = st.columns([0.1, 0.8, 0.1])
+                        with col_img_centro:
+                            st.image(imagen_generada, caption='Tu nueva imagen', use_container_width=True)
+                    else:
+                        st.error("❌ Los servidores de imágenes globales están caídos en este momento. Inténtalo de nuevo más tarde.")
 
         else:
             st.warning("Por favor, describe qué quieres que la IA pinte o sube una imagen.")
