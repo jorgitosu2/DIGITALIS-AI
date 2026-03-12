@@ -2,13 +2,13 @@ import streamlit as st
 from google import genai
 import os
 import base64
-from io import BytesIO
 from PIL import Image
+import urllib.parse
+import random
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Herramientas Virales | DIGITALIS IA", page_icon="favicon.png", layout="centered")
 
-# --- MEMORIA DE LA APLICACIÓN ---
 if 'red_activa' not in st.session_state:
     st.session_state['red_activa'] = 'TikTok'
 
@@ -28,9 +28,7 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
-# =========================================================
 # --- DISEÑO VISUAL PREMIUM ---
-# =========================================================
 st.markdown("""
     <style>
     .stApp { 
@@ -110,21 +108,13 @@ st.markdown("""
         background-color: rgba(168, 85, 247, 0.15) !important;
     }
 
-    button[data-baseweb="tab"] {
-        font-size: 1.1rem !important;
-        color: #cbd5e1 !important;
-    }
-    button[data-baseweb="tab"][aria-selected="true"] {
-        color: #a855f7 !important;
-        font-weight: bold !important;
-    }
-    div[data-baseweb="tab-highlight"] {
-        background-color: #a855f7 !important;
-    }
+    button[data-baseweb="tab"] { font-size: 1.1rem !important; color: #cbd5e1 !important; }
+    button[data-baseweb="tab"][aria-selected="true"] { color: #a855f7 !important; font-weight: bold !important; }
+    div[data-baseweb="tab-highlight"] { background-color: #a855f7 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONEXIÓN CON GOOGLE (Única y todopoderosa) ---
+# --- CONEXIÓN CON GOOGLE (Solo para Textos y Análisis de fotos) ---
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
@@ -139,30 +129,22 @@ with col_logo2:
         st.image("digi ai.png", use_container_width=True)
 
 st.markdown("<div style='margin-top: -30px;'></div>", unsafe_allow_html=True)
-
-# --- 🎯 TÍTULO PRINCIPAL ---
 st.markdown("""
     <h1 style='text-align: center; margin-top: -15px;'>
         <span style='color: #a855f7; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);'>GENERADOR DE IDEAS VIRALES</span><br>
         <span style='font-size: 0.5em; color: #d8b4fe; font-weight: normal; text-shadow: 1px 1px 2px black;'>By DIGITALIS IA</span>
-    </h1>
+    </h1><br>
     """, unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
 
 # =========================================================
-# --- SISTEMA DE PESTAÑAS (TABS) TODO EN UNO ---
+# --- SISTEMA DE PESTAÑAS ---
 # =========================================================
 tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Imágenes"])
 
-# ---------------------------------------------------------
-# PESTAÑA 1: GENERADOR DE GUIONES VIRALES
-# ---------------------------------------------------------
 with tab_guiones:
     st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; margin-top: -10px;'>1º Selecciona tu Red Social</h3>", unsafe_allow_html=True)
     
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; margin-top: -10px; text-shadow: 1px 1px 4px black;'>1º Selecciona tu Red Social</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Elige la plataforma para la que quieres crear contenido.</p>", unsafe_allow_html=True)
-
     espacio_izq, col_tk, col_ig, col_yt, espacio_der = st.columns([1, 1.5, 1.5, 1.5, 1])
 
     with col_tk:
@@ -181,108 +163,76 @@ with tab_guiones:
         st.button("YouTube", on_click=seleccionar_red, args=('YouTube Shorts',), type=tipo_yt, use_container_width=True, key="btn_yt")
 
     st.markdown("<hr style='border:1px solid rgba(168, 85, 247, 0.2); margin: 30px 0;'>", unsafe_allow_html=True)
-
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>2º Describe tu Negocio al Detalle</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem;'>2º Describe tu Negocio al Detalle</h3>", unsafe_allow_html=True)
     
-    nicho_cliente = st.text_area(
-        "Oculto 1", 
-        placeholder='Ej: "Soy entrenador personal online y quiero vender retos de 30 días para perder peso en casa. Mi público objetivo son madres ocupadas..."', 
-        label_visibility="collapsed",
-        height=140 
-    )
+    nicho_cliente = st.text_area("Oculto 1", placeholder='Ej: "Soy entrenador personal online..."', label_visibility="collapsed", height=140)
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     col_esp1, col_btn_gen, col_esp2 = st.columns([1, 1.5, 1])
     with col_btn_gen:
-        boton_generar = st.button("✨ Generar Guiones Virales", type="primary", use_container_width=True, key="btn_ideas")
+        boton_generar = st.button("✨ Generar Guiones Virales", type="primary", use_container_width=True)
 
-    if boton_generar:
-        if nicho_cliente:
-            red_elegida = st.session_state['red_activa']
-            with st.spinner(f'Digitalis IA está generando magia para {red_elegida}...'):
-                prompt_secreto = f"""Eres el Director Creativo de DIGITALIS IA. El cliente dice: "{nicho_cliente}". Genera 3 ideas virales EXCLUSIVAMENTE para {red_elegida}. Incluye: Título gancho, guion de 15s y 3 hashtags. REGLA DE ORO: Responde SOLO en Español."""
-                try:
-                    respuesta = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_secreto)
-                    st.success(f"¡Aquí tienes tus ideas para {red_elegida}!")
-                    st.write(respuesta.text)
-                except Exception as e:
-                    st.error("❌ ERROR DE CONEXIÓN CON GOOGLE")
-        else:
-            st.warning("Por favor, describe tu negocio primero en la caja de texto.")
+    if boton_generar and nicho_cliente:
+        red_elegida = st.session_state['red_activa']
+        with st.spinner(f'Digitalis IA está generando magia para {red_elegida}...'):
+            prompt_secreto = f"""Eres el Director Creativo de DIGITALIS IA. El cliente dice: "{nicho_cliente}". Genera 3 ideas virales para {red_elegida}. Incluye: Título gancho, guion de 15s y 3 hashtags. Responde en Español."""
+            try:
+                respuesta = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_secreto)
+                st.success(f"¡Aquí tienes tus ideas para {red_elegida}!")
+                st.write(respuesta.text)
+            except Exception as e:
+                st.error("❌ ERROR DE CONEXIÓN CON GOOGLE")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (100% NATIVO GOOGLE IMAGEN 3)
+# PESTAÑA 2: CREADOR DE IMÁGENES (HTML DIRECTO - INFALIBLE)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; text-shadow: 1px 1px 4px black;'>Creador de Imágenes por IA</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px; text-shadow: 1px 1px 2px black;'>Sube una foto de referencia o simplemente describe lo que quieres crear.</p>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem;'>Creador de Imágenes por IA</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px;'>Sube una foto de referencia o simplemente describe lo que quieres crear.</p>", unsafe_allow_html=True)
 
     imagen_subida = st.file_uploader("Sube tu imagen (Opcional)", type=["png", "jpg", "jpeg"])
 
-    prompt_imagen = st.text_area(
-        "Oculto 2", 
-        placeholder='Ej: "Basándote en mi foto, ponle una gorra negra con logo de JEEP" o "Un gato ninja en la luna"...', 
-        label_visibility="collapsed",
-        height=100
-    )
+    prompt_imagen = st.text_area("Oculto 2", placeholder='Ej: "Un gato ninja en la luna"...', label_visibility="collapsed", height=100)
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     col_esp_img1, col_btn_img, col_esp_img2 = st.columns([1, 1.5, 1])
     with col_btn_img:
-        boton_imagen = st.button("🎨 Crear Imagen Mágica", type="primary", use_container_width=True, key="btn_img")
+        boton_imagen = st.button("🎨 Crear Imagen Mágica", type="primary", use_container_width=True)
 
-    if boton_imagen:
-        if prompt_imagen or imagen_subida:
+    if boton_imagen and (prompt_imagen or imagen_subida):
+        texto_final_para_ia = prompt_imagen
+
+        # Si subió foto, Google la lee
+        if imagen_subida is not None:
+            with st.spinner("👁️ Analizando la foto de referencia con Inteligencia Artificial..."):
+                try:
+                    img_pil = Image.open(imagen_subida)
+                    prompt_gemini = f"Describe a la persona o sujeto principal de esta imagen en 10 palabras en INGLÉS. Luego añade esto: '{prompt_imagen}'. Devuelve solo el texto final."
+                    respuesta_gemini = client.models.generate_content(model='gemini-2.5-flash', contents=[img_pil, prompt_gemini])
+                    texto_final_para_ia = respuesta_gemini.text
+                except Exception as e:
+                    st.error("Hubo un error al leer tu imagen.")
+        
+        # LA MAGIA ANTI-BLOQUEO: Streamlit NO descarga nada. Generamos una etiqueta HTML.
+        if texto_final_para_ia:
+            st.success("¡Comando enviado! Tu navegador está dibujando la imagen...")
+            st.info("💡 Espera de 5 a 10 segundos mirando este recuadro negro. La imagen aparecerá sola.")
             
-            texto_final_para_ia = prompt_imagen
-
-            # 1. El cerebro de textos analiza la foto para entenderla
-            if imagen_subida is not None:
-                with st.spinner("👁️ Analizando la foto de referencia con Google Gemini..."):
-                    try:
-                        img_pil = Image.open(imagen_subida)
-                        prompt_gemini = f"Analiza esta imagen y crea un prompt de máximo 30 palabras en INGLÉS. Mantén al sujeto pero aplica: '{prompt_imagen}'."
-                        respuesta_gemini = client.models.generate_content(
-                            model='gemini-2.5-flash', 
-                            contents=[img_pil, prompt_gemini]
-                        )
-                        texto_final_para_ia = respuesta_gemini.text
-                    except Exception as e:
-                        st.error("Hubo un error al leer tu imagen de referencia.")
+            # Limpiamos el texto y creamos la URL segura
+            texto_limpio = urllib.parse.quote(f"{texto_final_para_ia}, masterpiece, ultra detailed, 8k")
+            semilla = random.randint(1, 1000000)
+            url_imagen = f"https://image.pollinations.ai/prompt/{texto_limpio}?nologo=true&seed={semilla}"
             
-            # 2. El cerebro de Imágenes (Google Imagen 3) pinta la foto
-            if texto_final_para_ia:
-                with st.spinner("🎨 Google Imagen 3 está pintando tu obra de arte..."):
-                    try:
-                        # LLAMADA DIRECTA AL CREADOR DE IMÁGENES DE GOOGLE
-                        resultado_imagen = client.models.generate_images(
-                            model='imagen-3.0-generate-001',
-                            prompt=f"{texto_final_para_ia}, highly detailed, cinematic lighting",
-                            config=dict(
-                                number_of_images=1,
-                                aspect_ratio="1:1",
-                                output_mime_type="image/jpeg"
-                            )
-                        )
-                        
-                        # Extraemos la imagen que nos devuelve Google
-                        for img_generada in resultado_imagen.generated_images:
-                            imagen_final = Image.open(BytesIO(img_generada.image.image_bytes))
-                            
-                            st.success("¡Imagen creada con éxito por Google!")
-                            col_esp1, col_img_centro, col_esp2 = st.columns([0.1, 0.8, 0.1])
-                            with col_img_centro:
-                                st.image(imagen_final, caption="Generado con Google Imagen 3", use_container_width=True)
-                                
-                    except Exception as e:
-                        # Google es muy estricto. Si le pides algo violento, con copyright o marcas muy exactas, lo bloquea.
-                        st.error(f"❌ Google ha bloqueado la creación de esta imagen. Intenta describir algo distinto o no usar marcas registradas.")
-
-        else:
-            st.warning("Por favor, describe qué quieres que la IA pinte o sube una imagen.")
+            # Forzamos al HTML del cliente a cargar la foto. Es como si el usuario entrara a la web.
+            codigo_html = f"""
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px; min-height: 300px; background-color: rgba(0,0,0,0.3); border-radius: 12px;">
+                <img src="{url_imagen}" alt="Cargando imagen de IA..." style="width: 100%; max-width: 600px; border-radius: 12px; box-shadow: 0 10px 25px rgba(168,85,247,0.5);">
+                <br>
+                <a href="{url_imagen}" target="_blank" style="padding: 10px 20px; background-color: #a855f7; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">🔍 Ver en Alta Calidad</a>
+            </div>
+            """
+            st.markdown(codigo_html, unsafe_allow_html=True)
 
 # --- PIE DE PÁGINA ---
 st.markdown("<p style='text-align: center; font-size: 13px; color: #a855f7; margin-top: 60px;'>Desarrollado con 💜 por <b>DIGITALIS IA</b></p>", unsafe_allow_html=True)
