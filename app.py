@@ -2,8 +2,7 @@ import streamlit as st
 from google import genai
 import os
 import base64
-import urllib.parse
-import random
+from io import BytesIO
 from PIL import Image
 
 # --- CONFIGURACIÓN DE PÁGINA ---
@@ -28,19 +27,6 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
             st.markdown(html, unsafe_allow_html=True)
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
-
-# --- FUNCIÓN MÁGICA 4.0: DESCARGA DIRECTA AL NAVEGADOR (ANTI-BLOQUEOS) ---
-def generar_url_imagen(prompt):
-    """No descarga la imagen en el servidor, solo genera la URL exacta para que el navegador del cliente la cargue."""
-    # Limpiamos el texto por si Gemini mete saltos de línea raros que rompen el enlace
-    prompt_limpio = prompt.replace('\n', ' ').replace('\r', '')
-    prompt_mejorado = f"{prompt_limpio}, masterpiece, ultra detailed, 8k resolution, highly cinematic"
-    prompt_url = urllib.parse.quote(prompt_mejorado)
-    semilla = random.randint(1, 1000000)
-    
-    # Usamos el modelo 'flux' que es el más nuevo, rápido y realista del mercado Open Source
-    url = f"https://image.pollinations.ai/prompt/{prompt_url}?model=flux&nologo=true&seed={semilla}&width=1024&height=1024"
-    return url
 
 # =========================================================
 # --- DISEÑO VISUAL PREMIUM ---
@@ -138,7 +124,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONEXIÓN CON GOOGLE ---
+# --- CONEXIÓN CON GOOGLE (Única y todopoderosa) ---
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
@@ -226,7 +212,7 @@ with tab_guiones:
             st.warning("Por favor, describe tu negocio primero en la caja de texto.")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (ANTI-BLOQUEOS DEFINITIVO)
+# PESTAÑA 2: CREADOR DE IMÁGENES (100% NATIVO GOOGLE IMAGEN 3)
 # ---------------------------------------------------------
 with tab_imagenes:
     st.markdown("<br>", unsafe_allow_html=True)
@@ -253,37 +239,47 @@ with tab_imagenes:
             
             texto_final_para_ia = prompt_imagen
 
-            # 1. Gemini analiza la foto y crea un resumen INGLÉS y CORTÍSIMO
+            # 1. El cerebro de textos analiza la foto para entenderla
             if imagen_subida is not None:
                 with st.spinner("👁️ Analizando la foto de referencia con Google Gemini..."):
                     try:
                         img_pil = Image.open(imagen_subida)
-                        prompt_gemini = f"Actúa como un experto en prompts de imágenes. Describe esta foto y aplícale ESTA MODIFICACIÓN: '{prompt_imagen}'. REGLA ESTRICTA: Escribe máximo 20 palabras. Solo en INGLÉS. Sin comillas ni caracteres raros."
-                        
+                        prompt_gemini = f"Analiza esta imagen y crea un prompt de máximo 30 palabras en INGLÉS. Mantén al sujeto pero aplica: '{prompt_imagen}'."
                         respuesta_gemini = client.models.generate_content(
                             model='gemini-2.5-flash', 
                             contents=[img_pil, prompt_gemini]
                         )
                         texto_final_para_ia = respuesta_gemini.text
-                        
                     except Exception as e:
                         st.error("Hubo un error al leer tu imagen de referencia.")
             
-            # 2. Generar el enlace visual
+            # 2. El cerebro de Imágenes (Google Imagen 3) pinta la foto
             if texto_final_para_ia:
-                st.success("¡Obra de arte en proceso!")
-                st.info("💡 Tu navegador está descargando la imagen. Puede tardar de 5 a 15 segundos en aparecer justo aquí abajo 👇")
-                
-                url_final = generar_url_imagen(texto_final_para_ia)
-                
-                # Le decimos a Streamlit que muestre la URL. Esto obliga al navegador del usuario a cargarla, saltando cualquier bloqueo.
-                st.image(url_final, caption="Tu nueva imagen generada por IA", use_container_width=True)
-
-                st.markdown(f"""
-                <div style="display: flex; justify-content: center; margin-top: 15px;">
-                    <a href="{url_final}" target="_blank" style="padding: 10px 20px; background-color: #a855f7; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">⬇️ Abrir imagen en Alta Calidad</a>
-                </div>
-                """, unsafe_allow_html=True)
+                with st.spinner("🎨 Google Imagen 3 está pintando tu obra de arte..."):
+                    try:
+                        # LLAMADA DIRECTA AL CREADOR DE IMÁGENES DE GOOGLE
+                        resultado_imagen = client.models.generate_images(
+                            model='imagen-3.0-generate-001',
+                            prompt=f"{texto_final_para_ia}, highly detailed, cinematic lighting",
+                            config=dict(
+                                number_of_images=1,
+                                aspect_ratio="1:1",
+                                output_mime_type="image/jpeg"
+                            )
+                        )
+                        
+                        # Extraemos la imagen que nos devuelve Google
+                        for img_generada in resultado_imagen.generated_images:
+                            imagen_final = Image.open(BytesIO(img_generada.image.image_bytes))
+                            
+                            st.success("¡Imagen creada con éxito por Google!")
+                            col_esp1, col_img_centro, col_esp2 = st.columns([0.1, 0.8, 0.1])
+                            with col_img_centro:
+                                st.image(imagen_final, caption="Generado con Google Imagen 3", use_container_width=True)
+                                
+                    except Exception as e:
+                        # Google es muy estricto. Si le pides algo violento, con copyright o marcas muy exactas, lo bloquea.
+                        st.error(f"❌ Google ha bloqueado la creación de esta imagen. Intenta describir algo distinto o no usar marcas registradas.")
 
         else:
             st.warning("Por favor, describe qué quieres que la IA pinte o sube una imagen.")
