@@ -2,13 +2,14 @@ import streamlit as st
 from google import genai
 import os
 import base64
+import requests
+from io import BytesIO
 from PIL import Image
-import urllib.parse
-import random
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Herramientas Virales | DIGITALIS IA", page_icon="favicon.png", layout="centered")
 
+# --- MEMORIA DE LA APLICACIÓN ---
 if 'red_activa' not in st.session_state:
     st.session_state['red_activa'] = 'TikTok'
 
@@ -28,7 +29,34 @@ def mostrar_icono_centrado(ruta_imagen, tamaño=40):
     else:
         st.markdown(f'<div style="height: {tamaño}px; margin-bottom: 5px;"></div>', unsafe_allow_html=True)
 
+# --- FUNCIÓN MÁGICA 5.0: MOTOR SDXL-TURBO (RÁPIDO Y ESTABLE) ---
+def generar_imagen_turbo(prompt, api_key):
+    # Usamos el modelo TURBO: Genera imágenes en 1 segundo y rara vez se satura
+    API_URL = "https://api-inference.huggingface.co/models/stabilityai/sdxl-turbo"
+    headers = {"Authorization": f"Bearer {api_key}"}
+    
+    # Preparamos el texto para máxima calidad
+    prompt_mejorado = f"{prompt}, masterpiece, highly detailed, 8k resolution, photorealistic"
+    payload = {"inputs": prompt_mejorado}
+    
+    try:
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            return Image.open(BytesIO(response.content))
+        elif response.status_code == 503:
+            st.warning("⏳ El servidor Turbo está arrancando. Dale al botón otra vez en 5 segundos.")
+            return None
+        else:
+            st.error(f"❌ Error del servidor de imágenes. Intenta pedir algo ligeramente distinto.")
+            return None
+    except Exception as e:
+        st.error("❌ Error de conexión a internet.")
+        return None
+
+# =========================================================
 # --- DISEÑO VISUAL PREMIUM ---
+# =========================================================
 st.markdown("""
     <style>
     .stApp { 
@@ -114,12 +142,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CONEXIÓN CON GOOGLE (Solo para Textos y Análisis de fotos) ---
+# --- CONEXIÓN CON LAS CLAVES SECRETAS ---
 try:
     API_KEY_GOOGLE = st.secrets["GEMINI_API_KEY"].strip()
     client = genai.Client(api_key=API_KEY_GOOGLE)
+    
+    API_KEY_HF = st.secrets.get("HF_API_KEY", "").strip()
 except Exception as e:
-    st.error("🚨 ERROR CRÍTICO: Revisa tu clave de Google en los Secrets.")
+    st.error("🚨 ERROR CRÍTICO: Faltan claves en los Secrets de Streamlit.")
     st.stop()
 
 # --- 🎯 ZONA DEL LOGO ---
@@ -129,6 +159,7 @@ with col_logo2:
         st.image("digi ai.png", use_container_width=True)
 
 st.markdown("<div style='margin-top: -30px;'></div>", unsafe_allow_html=True)
+
 st.markdown("""
     <h1 style='text-align: center; margin-top: -15px;'>
         <span style='color: #a855f7; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);'>GENERADOR DE IDEAS VIRALES</span><br>
@@ -141,9 +172,11 @@ st.markdown("""
 # =========================================================
 tab_guiones, tab_imagenes = st.tabs(["📝 Generador de Guiones", "🎨 Creador de Imágenes"])
 
+# ---------------------------------------------------------
+# PESTAÑA 1: GENERADOR DE GUIONES VIRALES
+# ---------------------------------------------------------
 with tab_guiones:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; margin-top: -10px;'>1º Selecciona tu Red Social</h3>", unsafe_allow_html=True)
+    st.markdown("<br><h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem; margin-top: -10px;'>1º Selecciona tu Red Social</h3>", unsafe_allow_html=True)
     
     espacio_izq, col_tk, col_ig, col_yt, espacio_der = st.columns([1, 1.5, 1.5, 1.5, 1])
 
@@ -162,8 +195,7 @@ with tab_guiones:
         tipo_yt = "primary" if st.session_state['red_activa'] == 'YouTube Shorts' else "secondary"
         st.button("YouTube", on_click=seleccionar_red, args=('YouTube Shorts',), type=tipo_yt, use_container_width=True, key="btn_yt")
 
-    st.markdown("<hr style='border:1px solid rgba(168, 85, 247, 0.2); margin: 30px 0;'>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem;'>2º Describe tu Negocio al Detalle</h3>", unsafe_allow_html=True)
+    st.markdown("<hr style='border:1px solid rgba(168, 85, 247, 0.2); margin: 30px 0;'><h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem;'>2º Describe tu Negocio al Detalle</h3>", unsafe_allow_html=True)
     
     nicho_cliente = st.text_area("Oculto 1", placeholder='Ej: "Soy entrenador personal online..."', label_visibility="collapsed", height=140)
 
@@ -184,55 +216,49 @@ with tab_guiones:
                 st.error("❌ ERROR DE CONEXIÓN CON GOOGLE")
 
 # ---------------------------------------------------------
-# PESTAÑA 2: CREADOR DE IMÁGENES (HTML DIRECTO - INFALIBLE)
+# PESTAÑA 2: CREADOR DE IMÁGENES (MOTOR TURBO OFICIAL)
 # ---------------------------------------------------------
 with tab_imagenes:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem;'>Creador de Imágenes por IA</h3>", unsafe_allow_html=True)
+    st.markdown("<br><h3 style='text-align: center; color: #f8fafc; font-size: 1.4rem;'>Creador de Imágenes por IA</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #cbd5e1; font-size: 0.95rem; margin-bottom: 20px;'>Sube una foto de referencia o simplemente describe lo que quieres crear.</p>", unsafe_allow_html=True)
 
     imagen_subida = st.file_uploader("Sube tu imagen (Opcional)", type=["png", "jpg", "jpeg"])
-
-    prompt_imagen = st.text_area("Oculto 2", placeholder='Ej: "Un gato ninja en la luna"...', label_visibility="collapsed", height=100)
+    prompt_imagen = st.text_area("Oculto 2", placeholder='Ej: "Basándote en mi foto, ponle una gorra negra..."', label_visibility="collapsed", height=100)
 
     st.markdown("<br>", unsafe_allow_html=True)
     col_esp_img1, col_btn_img, col_esp_img2 = st.columns([1, 1.5, 1])
     with col_btn_img:
         boton_imagen = st.button("🎨 Crear Imagen Mágica", type="primary", use_container_width=True)
 
-    if boton_imagen and (prompt_imagen or imagen_subida):
-        texto_final_para_ia = prompt_imagen
+    if boton_imagen:
+        if not API_KEY_HF:
+            st.error("⚠️ Necesitas tu clave de Hugging Face (HF_API_KEY) en los Secrets para usar el motor Turbo.")
+        elif prompt_imagen or imagen_subida:
+            texto_final = prompt_imagen
 
-        # Si subió foto, Google la lee
-        if imagen_subida is not None:
-            with st.spinner("👁️ Analizando la foto de referencia con Inteligencia Artificial..."):
-                try:
-                    img_pil = Image.open(imagen_subida)
-                    prompt_gemini = f"Describe a la persona o sujeto principal de esta imagen en 10 palabras en INGLÉS. Luego añade esto: '{prompt_imagen}'. Devuelve solo el texto final."
-                    respuesta_gemini = client.models.generate_content(model='gemini-2.5-flash', contents=[img_pil, prompt_gemini])
-                    texto_final_para_ia = respuesta_gemini.text
-                except Exception as e:
-                    st.error("Hubo un error al leer tu imagen.")
-        
-        # LA MAGIA ANTI-BLOQUEO: Streamlit NO descarga nada. Generamos una etiqueta HTML.
-        if texto_final_para_ia:
-            st.success("¡Comando enviado! Tu navegador está dibujando la imagen...")
-            st.info("💡 Espera de 5 a 10 segundos mirando este recuadro negro. La imagen aparecerá sola.")
+            # 1. Gemini analiza la foto y la resume en inglés
+            if imagen_subida is not None:
+                with st.spinner("👁️ Analizando la foto de referencia..."):
+                    try:
+                        img_pil = Image.open(imagen_subida)
+                        prompt_gemini = f"Analiza esta imagen y crea un prompt de máximo 20 palabras en INGLÉS. Mantén al sujeto pero aplica: '{prompt_imagen}'."
+                        respuesta_gemini = client.models.generate_content(model='gemini-2.5-flash', contents=[img_pil, prompt_gemini])
+                        texto_final = respuesta_gemini.text
+                    except Exception as e:
+                        st.error("Hubo un error al leer tu imagen.")
             
-            # Limpiamos el texto y creamos la URL segura
-            texto_limpio = urllib.parse.quote(f"{texto_final_para_ia}, masterpiece, ultra detailed, 8k")
-            semilla = random.randint(1, 1000000)
-            url_imagen = f"https://image.pollinations.ai/prompt/{texto_limpio}?nologo=true&seed={semilla}"
-            
-            # Forzamos al HTML del cliente a cargar la foto. Es como si el usuario entrara a la web.
-            codigo_html = f"""
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px; min-height: 300px; background-color: rgba(0,0,0,0.3); border-radius: 12px;">
-                <img src="{url_imagen}" alt="Cargando imagen de IA..." style="width: 100%; max-width: 600px; border-radius: 12px; box-shadow: 0 10px 25px rgba(168,85,247,0.5);">
-                <br>
-                <a href="{url_imagen}" target="_blank" style="padding: 10px 20px; background-color: #a855f7; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">🔍 Ver en Alta Calidad</a>
-            </div>
-            """
-            st.markdown(codigo_html, unsafe_allow_html=True)
+            # 2. Genera la imagen con el Motor Turbo
+            if texto_final:
+                with st.spinner('🎨 Generando obra de arte (¡Suele tardar menos de 3 segundos!)...'):
+                    imagen_generada = generar_imagen_turbo(texto_final, API_KEY_HF)
+                    
+                    if imagen_generada:
+                        st.success("¡Imagen creada con éxito!")
+                        col_esp1, col_img_centro, col_esp2 = st.columns([0.1, 0.8, 0.1])
+                        with col_img_centro:
+                            st.image(imagen_generada, caption='Generado por DIGITALIS IA', use_container_width=True)
+        else:
+            st.warning("Por favor, describe qué quieres que la IA pinte o sube una imagen.")
 
 # --- PIE DE PÁGINA ---
 st.markdown("<p style='text-align: center; font-size: 13px; color: #a855f7; margin-top: 60px;'>Desarrollado con 💜 por <b>DIGITALIS IA</b></p>", unsafe_allow_html=True)
